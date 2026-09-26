@@ -311,7 +311,7 @@ function playPlate(id, opts = {}) {
   const L = ensureLayers(); const S = sizeLayers(); const sc = portionScene(scene(id), rv.k); const copies = sc.copies || 1;
   const ctx = {}; LAYERS.forEach(n => { ctx[n] = L[n].getContext('2d'); ctx[n].setTransform(1, 0, 0, 1, 0, 0); ctx[n].clearRect(0, 0, S, S); });
   const underC = [];
-  for (let ci = 0; ci < copies; ci++) { const cc = mkCanvas(S, S); renderUnder({ vessels: sc.vessels.filter(v => (v.copy || 0) === ci), id: sc.id }, S, cc.getContext('2d')); underC.push(cc); }
+  for (let ci = 0; ci < copies; ci++) { const cc = mkCanvas(S, S); renderUnder({ vessels: sc.vessels.filter(v => (v.copy || 0) === ci), id: sc.id, dress: (sc.dress || []).filter(d => (d.copy || 0) === ci) }, S, cc.getContext('2d')); underC.push(cc); }
   const drawUnder = t => { ctx.under.clearRect(0, 0, S, S); underC.forEach((cc, ci) => { const p = copies === 1 ? 1 : clamp((t - ci * 210) / 620, 0, 1); if (p <= 0) return; const e = ease.outBack(p); ctx.under.save(); ctx.under.globalAlpha = clamp(p * 2, 0, 1); ctx.under.translate((1 - e) * S * .55, (1 - e) * S * .12); ctx.under.translate(S / 2, S / 2); ctx.under.rotate((1 - e) * .5); ctx.under.translate(-S / 2, -S / 2); ctx.under.drawImage(cc, 0, 0); ctx.under.restore(); }); };
   const enterEnd = copies === 1 ? 0 : (copies - 1) * 210 + 620;
   drawUnder(copies === 1 ? 1e9 : 0);
@@ -335,7 +335,7 @@ function playPlate(id, opts = {}) {
   const frame = now => {
     const t = now - t0;
     if (t <= enterEnd + 40) drawUnder(t); else if (!rv._over) { rv._over = 1; drawUnder(1e9); renderOver(sc, S, ctx.over); }
-    if (hasBase && t >= baseStart && t < baseStart + baseDur + 40) { const p = clamp((t - baseStart) / baseDur, 0, 1); ctx.base.clearRect(0, 0, S, S); renderBase(sc, S, ctx.base, ease.outCubic(p)); if (!rv._basePoured) { rv._basePoured = 1; sc.vessels.forEach(v => v.base && v.base.from.forEach(pourLine)); } }
+    if (hasBase && t >= baseStart && !rv._baseDone) { const p = clamp((t - baseStart) / baseDur, 0, 1); if (p >= 1) rv._baseDone = 1; ctx.base.clearRect(0, 0, S, S); renderBase(sc, S, ctx.base, ease.outCubic(p)); if (!rv._basePoured) { rv._basePoured = 1; sc.vessels.forEach(v => v.base && v.base.from.forEach(pourLine)); } }
     const f = ctx.fly; f.clearRect(0, 0, S, S);
     let pending = 0;
     for (const g of groups) if (!g.fired && t >= g.st) { g.fired = 1; pourLine(g.ing); }
@@ -353,9 +353,9 @@ function playPlate(id, opts = {}) {
       drawItem(f, o.it, S, o.spr, { lift: lift * .6, alpha: clamp(p * 3.2, 0, 1) });
       f.restore();
     }
-    if (pending) rv.raf = requestAnimationFrame(frame); else { f.clearRect(0, 0, S, S); onPlateDone(); }
+    if (pending || (hasBase && !rv._baseDone)) rv.raf = requestAnimationFrame(frame); else { f.clearRect(0, 0, S, S); if (!rv._over) { rv._over = 1; drawUnder(1e9); renderOver(sc, S, ctx.over); } onPlateDone(); }
   };
-  rv._basePoured = 0; rv._over = 0;
+  rv._basePoured = 0; rv._over = 0; rv._baseDone = 0;
   rv.raf = requestAnimationFrame(frame);
 }
 const COLD = new Set(['pastasallad', 'paprika-chorizo', 'islatte', 'dalgona', 'overnight-oats', 'chiapudding', 'avokadotoast', 'bruschetta']);
@@ -492,7 +492,7 @@ function keywords(t) {
   const out = new Set();
   t.toLowerCase().replace(/\(.*?\)/g, ' ').split(/[^a-zåäöéü]+/).filter(w => w.length >= 3 && !STOP.has(w)).forEach(w => {
     out.add(w.slice(0, Math.max(3, Math.min(6, w.length - (w.length > 5 ? 2 : 0)))));
-    if (w.length >= 10) for (let i = 3; i <= w.length - 6; i++) out.add(w.slice(i, i + 6));
+    if (w.length >= 7) for (let i = 3; i <= w.length - 4; i++) { const sfx = w.slice(i, i + 6); if (sfx.length >= 4 && !STOP.has(w.slice(i))) out.add(sfx); }
   });
   return [...out];
 }
@@ -552,12 +552,13 @@ function renderCook() {
     SND.ambience(/stek|fräs|bryn|rosta|grilla|gratinera/.test(low) ? 'sizzle' : /koka|sjud|puttra|bubbl/.test(low) ? 'simmer' : null);
     setTimeout(() => $$('#kMain [data-t]').forEach(b => b.addEventListener('click', () => { const t = tm[+b.dataset.t]; addTimer(`${r.title} · steg ${n}`, t.min, t.label); b.disabled = true; b.style.opacity = .5; })), 0);
   } else {
-    html += `<p class="k-count">Klart · ${esc(r.title)}</p><div class="k-mascot" id="kMascot"></div>`;
+    html += `<p class="k-count">Klart · ${esc(r.title)}</p><div class="k-done"><div class="k-final"><span class="k-rays"></span><canvas id="kFinal"></canvas></div><div class="k-mascot" id="kMascot"></div></div>`;
     r.parts.forEach(p => { (p.tips || []).forEach(n => html += `<p class="k-note"><b>Tips</b>${esc(n)}</p>`); (p.pairs || []).forEach(n => { const [a, ...b] = n.split(':'); html += `<p class="k-note"><b>${esc(a)}</b>${esc(b.join(':').trim())}</p>`; }); });
     SND.ambience(null);
   }
   const main = $('#kMain'); main.innerHTML = html; main.scrollTop = 0; main.classList.toggle('with-film', s.type === 'step');
-  if (s.type === 'step' && PROC) PROC.play($('#kFilm'), $('#kFilmCap'), ck.id, s.text); else PROC && PROC.stop();
+  if (s.type === 'step' && PROC) { const si = ck.list.slice(0, ck.i + 1).filter(x => x.type === 'step').length - 1; PROC.play($('#kFilm'), $('#kFilmCap'), ck.id, s.text, si, si === ck.list.filter(x => x.type === 'step').length - 1); } else PROC && PROC.stop();
+  if (s.type === 'done') { const fc = $('#kFinal'); if (fc) { const D = Math.min(2, devicePixelRatio || 1), S = Math.round(Math.min(620, fc.getBoundingClientRect().width || 420) * D); renderScene(scene(ck.id), S, fc); } }
   $('#cook .k-bg').hidden = s.type === 'step';
   if (s.type === 'done') playMascot($('#kMascot'), ck.id, API);
   $$('.k-list li', main).forEach(li => li.addEventListener('click', () => { const i = +li.dataset.i; ck.checked.has(i) ? ck.checked.delete(i) : ck.checked.add(i); li.classList.toggle('done'); }));

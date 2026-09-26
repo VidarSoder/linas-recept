@@ -1,46 +1,73 @@
 /* ==========================================================================
-   Stegfilmer — every step in cook mode becomes a little film of what you
-   actually do, played with the ingredients that step mentions.
+   Stegfilmer — every step in cook mode becomes a small, sunlit film of what
+   you actually do, played with that step's own ingredients. What goes into
+   the pot stays in the pot, and the last step ends in the finished dish.
    ========================================================================== */
 function initProcess(A) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const ACTIONS = [
     [/sätt (på )?ugnen|värm ugnen|sätt på en platta/, 'preheat', 'Värm ugnen'],
-    [/grädda|gratinera|tillaga i ugn|in i ugnen|i ugnen i|in formen i/, 'bake', 'Grädda'],
-    [/\bfinriv|\bgrovriv|\briv\b|\briv(er|en)? |rivjärn|riv av/, 'grate', 'Riv'],
+    [/grädda|gratinera|tillaga i ugn|in i ugnen|i ugnen i|in formen i|ställ in/, 'bake', 'Grädda'],
+    [/riv (av |ner )?skalet|citronskal|apelsinskal|zest/, 'zest', 'Riv skalet'],
+    [/\bfinriv|\bgrovriv|\briv\b|\briv(er|en)? |rivjärn/, 'grate', 'Riv'],
+    [/pressa (ner |i )?(vitlök|vitlöken)|pressa vitlök|pressad vitlök|pressa ner den/, 'press', 'Pressa vitlöken'],
     [/\bskala\b/, 'peel', 'Skala'],
-    [/hacka|skiva|strimla|tärna|\bskär\b|dela |dela,|ansa|mortla|kärna ur/, 'chop', 'Skär'],
-    [/mixa|mosa|stavmixer|mixkanna|potatisstomp|pressa ner|pressa i/, 'blend', 'Mixa'],
+    [/finhacka|grovhacka|hacka|skiva|strimla|tärna|\bskär\b|dela |dela,|ansa|mortla|kärna ur|klyfta/, 'chop', 'Skär'],
+    [/smält/, 'melt', 'Smält'],
+    [/mosa|potatisstomp|stompa/, 'mash', 'Mosa'],
+    [/mixa|stavmixer|mixkanna/, 'blend', 'Mixa'],
     [/vispa/, 'whisk', 'Vispa'],
     [/fräs|\bstek|bryn|rosta|glansig/, 'fry', 'Stek'],
     [/koka|sjud|puttra|bubbla/, 'boil', 'Koka'],
-    [/häll av|skölj|sila|rinna av|krama ur|ånga av/, 'drain', 'Häll av'],
-    [/forma|rulla ihop|rulla små|kavla|platta (ut|till)|knåda/, 'shape', 'Forma'],
-    [/tillsätt|lägg i|lägg ner|häll (i|på|över|ner)|smula ner|vänd ner|rör ner|blanda ner|lägg över/, 'add', 'Tillsätt'],
-    [/blanda|rör om|rör ihop|rör samman|rör till|arbeta (ihop|samman)|massera|vänd runt|fluffa/, 'mix', 'Blanda'],
-    [/låt stå|vila|låt dra|dra i|svalna|jäsa|över natten|kylskåp|i kylen|kallna|tina/, 'rest', 'Låt vila'],
+    [/skölj|krama ur/, 'rinse', 'Skölj'],
+    [/häll av|sila|rinna av|ånga av/, 'drain', 'Häll av'],
+    [/kavla|platta ut/, 'roll', 'Kavla'],
+    [/knåda|arbeta (ihop|samman)/, 'knead', 'Knåda'],
+    [/forma|rulla ihop|rulla små|platta till|rulla mördegen/, 'shape', 'Forma'],
+    [/jäsa/, 'rise', 'Låt jäsa'],
+    [/pensla/, 'brush', 'Pensla'],
+    [/häll (i|på|över|ner|upp)|ringla/, 'pour', 'Häll'],
+    [/tillsätt|lägg i|lägg ner|smula ner|vänd ner|rör ner|blanda ner|lägg över|lägg tillbaka/, 'add', 'Tillsätt'],
+    [/blanda|rör om|rör ihop|rör samman|rör till|massera|vänd runt|fluffa/, 'mix', 'Blanda'],
+    [/kylskåp|i kylen|kyl |över natten|kallna|svalna/, 'chill', 'Låt kallna'],
+    [/låt stå|vila|låt dra|dra i|tina/, 'rest', 'Låt vila'],
     [/smaka av|salta|peppra|krydda|smaksätt/, 'season', 'Smaka av'],
-    [/servera|toppa|strö|fördela|ringla|garnera|fyll |pensla|bred /, 'serve', 'Servera']
+    [/strö|toppa|garnera|fördela|fyll /, 'sprinkle', 'Strö över'],
+    [/servera|lägg upp|dela ut/, 'serve', 'Servera']
   ];
-  const VESSEL_WORDS = [[/stekpanna|panna|pannan/, 'skillet'], [/gryta|kastrull|kastrullen|grytan/, 'pot'], [/bunke|skål|bunken|mixkanna/, 'bowl'], [/ugnsform|form\b|formen|plåt/, 'dish']];
-  function segments(id, text) {
+  const VESSEL_WORDS = [[/stekpanna|pannan|\bpanna\b/, 'skillet'], [/gryta|kastrull|kastrullen|grytan/, 'pot'], [/bunke|skål|bunken|mixkanna|burk/, 'bowl'], [/ugnsform|formen|\bform\b|plåt/, 'dish']];
+  const IN_VESSEL = new Set(['fry', 'boil', 'add', 'mix', 'blend', 'season', 'pour', 'melt', 'whisk', 'mash']);
+  function segmentsOf(id, text) {
     const sents = text.split(/(?<=[.!?)])\s+(?=[A-ZÅÄÖ(])/);
-    const out = []; let vessel = null;
+    const out = []; let vessel = null, lastIngs = []; const fl = A.flat(id);
     sents.forEach(s => {
       const low = s.toLowerCase();
-      for (const [re, v] of VESSEL_WORDS) if (re.test(low)) { vessel = v; break; }
+      let own = null; for (const [re, v] of VESSEL_WORDS) if (re.test(low)) { vessel = v; own = v; break; }
+      const pastaK = /pasta|spaghetti|nudl|makaron|gnocchi|tagliatelle/.test(low) ? (fl.find(f => K[f.k] && (K[f.k].grp === 'nest' || ['penne', 'rigatoni', 'farfalle', 'macaroni', 'gnocchi'].includes(f.k))) || {}).k || ((VIS[id] || {}).extra || []).find(k => K[k] && (K[k].grp === 'nest' || K[k].g === 'tube')) : null;
       const hits = [];
       for (const [re, act, word] of ACTIONS) { const m = low.match(re); if (m) hits.push([m.index, act, word]); }
       hits.sort((a, b) => a[0] - b[0]);
       let { hits: ings } = A.stepIngredients(id, s);
-      if (/alla ingredienser|ingredienserna|övriga ingredienser|resterande ingredienser|resten av ingredienserna/.test(low)) ings = A.flat(id).map((f, i) => /:$/.test(f.t) ? -1 : i).filter(i => i >= 0);
+      if (/alla ingredienser|ingredienserna|övriga ingredienser|resterande ingredienser|resten av ingredienserna|de torra/.test(low)) ings = fl.map((f, i) => /:$/.test(f.t) ? -1 : i).filter(i => i >= 0);
+      if (!ings.length && lastIngs.length && !/alla|ugnen/.test(low)) ings = lastIngs; if (ings.length) lastIngs = ings;
       const temp = (s.match(/(\d{3})\s*°/) || [])[1];
-      const mins = A.timersIn(s)[0];
       const uniq = []; hits.forEach(h => { if (!uniq.some(u => u[1] === h[1])) uniq.push(h); });
-      uniq.slice(0, 2).forEach(([, act, word]) => out.push({ act, word, ings, text: s, temp, mins, vessel, cold: /kyl|kallna|natten/.test(low), rise: /jäsa/.test(low) }));
+      const posOf = i => { const n = (A.shortName(fl[i].t) || '').toLowerCase().split(' ')[0]; if (!n) return 9999; const st_ = n.slice(0, Math.max(3, Math.min(5, n.length - 1))); const m = low.indexOf(st_); return m < 0 ? 9999 : m; };
+      uniq.slice(0, 3).forEach(([at, act, word]) => { const ord = [...ings].sort((x, y) => { const px = posOf(x), py = posOf(y); const dx = px >= at ? px - at : 5000 + at - px, dy = py >= at ? py - at : 5000 + at - py; return dx - dy; }); out.push({ act, word, ings: ord, text: s, temp, vessel, own, pastaK, cold: /kyl|kallna|natten/.test(low) }); });
     });
     if (!out.length) out.push({ act: 'serve', word: 'Servera', ings: [], text, vessel });
     return out.filter((s, i) => i === 0 || s.act !== out[i - 1].act || s.text !== out[i - 1].text);
+  }
+  // what has already gone into the pot, and what colour the liquid has, before a given step
+  function history(id, stepIdx) {
+    const steps = A.R[id].parts.flatMap(p => p.steps || []), fl = A.flat(id);
+    const kinds = [], liqs = []; let vessel = null;
+    for (let i = 0; i < stepIdx; i++) segmentsOf(id, steps[i]).forEach(sg => {
+      if (!IN_VESSEL.has(sg.act)) return; if (sg.vessel) vessel = sg.vessel;
+      if (sg.act === 'boil' && sg.pastaK && !sg.ings.length) return;
+      sg.ings.forEach(ii => { const k = fl[ii] && fl[ii].k; if (!k || !K[k]) return; if ((K[k].g || K[k].grp) && !kinds.includes(k)) kinds.push(k); if (K[k].liq) liqs.push(k); });
+    });
+    return { kinds: kinds.slice(-6), liq: mixLiq(liqs), vessel };
   }
 
   /* ---------------- helpers ---------------- */
@@ -57,215 +84,360 @@ function initProcess(A) {
     const cv = itemSprite({ g: w[0], col: w[1] || (K[kind] && K[kind].col) || '#ccc', v: { kind: w[2] }, s: 1, x: 0, y: 0, rot: -.35, seed: 3 }, px); SPR.set(key, cv); return cv;
   }
   const liquidOf = kind => { const k = K[kind]; return k && (k.liq ? k.liq[0] : null); };
+  function mixLiq(kinds) { let r = 0, g = 0, b = 0, w = 0; kinds.forEach(k => { const L = K[k] && K[k].liq; if (!L) return; const [cr, cg, cb] = C.rgb(L[0]); r += Math.log(Math.max(cr, 10)) * L[1]; g += Math.log(Math.max(cg, 10)) * L[1]; b += Math.log(Math.max(cb, 10)) * L[1]; w += L[1]; }); return w ? C.hex([Math.exp(r / w), Math.exp(g / w), Math.exp(b / w)]) : null; }
   function blit(c, spr, x, y, sc = 1, rot = 0, a = 1, shadow = true) {
     if (!spr) return; const s = spr._size * sc; c.save(); c.globalAlpha = a; c.translate(x, y); c.rotate(rot);
-    if (shadow) { c.shadowColor = 'rgba(15,8,4,.4)'; c.shadowBlur = s * .12; c.shadowOffsetX = s * .05; c.shadowOffsetY = s * .08; }
+    if (shadow) { c.shadowColor = 'rgba(40,20,5,.4)'; c.shadowBlur = s * .12; c.shadowOffsetX = s * .05; c.shadowOffsetY = s * .08; }
     c.drawImage(spr, -s / 2, -s / 2, s, s); c.restore();
   }
-  const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
   const fr = x => x - Math.floor(x);
+  const eio = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+  const shade = (c, S, blur = .03, ox = .012, oy = .022, a = .42) => { c.shadowColor = `rgba(50,28,10,${a})`; c.shadowBlur = S * blur; c.shadowOffsetX = S * ox; c.shadowOffsetY = S * oy; };
 
-  /* ---------------- props ---------------- */
-  function board(c, S) {
-    c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = S * .04; c.shadowOffsetY = S * .02;
-    rr(c, S * .08, S * .2, S * .84, S * .6, S * .04); const g = c.createLinearGradient(0, S * .2, 0, S * .8); g.addColorStop(0, '#d2a878'); g.addColorStop(1, '#b08253'); c.fillStyle = g; c.fill(); c.restore();
-    c.save(); rr(c, S * .08, S * .2, S * .84, S * .6, S * .04); c.clip(); c.strokeStyle = 'rgba(110,70,35,.22)'; c.lineWidth = S * .003;
-    for (let i = 0; i < 26; i++) { const y = S * (.21 + i * .023); c.beginPath(); c.moveTo(S * .08, y); for (let k = 1; k <= 12; k++) c.lineTo(S * (.08 + k * .07), y + Math.sin(k + i) * S * .003); c.stroke(); }
-    c.restore(); c.beginPath(); c.arc(S * .86, S * .5, S * .025, 0, TAU); c.fillStyle = 'rgba(40,24,12,.45)'; c.fill();
+  /* ---------------- the kitchen counter every film is shot on ---------------- */
+  const BACK = new Map();
+  const TOWELS = [['#f3eee4', '#c8473a'], ['#eef0ec', '#3f6a9a'], ['#f2ecdf', '#6b8f4e'], ['#f4efe6', '#d6923a']];
+  const WOODS = ['#c99b69', '#d3a878', '#bf8f5f', '#caa16f'];
+  function backdrop(S, seed) {
+    const key = S + '|' + seed; if (BACK.has(key)) return BACK.get(key);
+    if (BACK.size > 24) BACK.clear();
+    const cv = mkCanvas(S, S), c = cv.getContext('2d'), r = mulberry(seed);
+    c.save(); rr(c, 0, 0, S, S, S * .05); c.clip();
+    const wood = WOODS[Math.floor(r() * WOODS.length)];
+    const plank = S / 5.2;
+    for (let i = 0; i < 6; i++) { const g = c.createLinearGradient(0, i * plank, 0, (i + 1) * plank); const col = C.mix(wood, r() < .5 ? C.light(wood, .1) : C.dark(wood, .08), r()); g.addColorStop(0, C.light(col, .04)); g.addColorStop(1, C.dark(col, .05)); c.fillStyle = g; c.fillRect(0, i * plank, S, plank);
+      c.strokeStyle = C.rgba(C.dark(wood, .4), .16); c.lineWidth = S * .0018; for (let k = 0; k < 7; k++) { const y = i * plank + r() * plank; c.beginPath(); c.moveTo(0, y); for (let q = 1; q <= 14; q++) c.lineTo(q * S / 14, y + Math.sin(q * .9 + k + i) * S * .003); c.stroke(); }
+      c.fillStyle = 'rgba(70,40,15,.28)'; c.fillRect(0, (i + 1) * plank - S * .002, S, S * .003); }
+    const [tc, ts] = TOWELS[Math.floor(r() * TOWELS.length)], corner = Math.floor(r() * 4);
+    c.save(); c.translate(corner % 2 ? S * .98 : S * .02, corner < 2 ? S * .03 : S * .97); c.rotate((corner % 2 ? 1 : -1) * (corner < 2 ? .5 : 2.6));
+    shade(c, S, .02, .004, .008, .3); rr(c, -S * .2, -S * .12, S * .4, S * .24, S * .01); c.fillStyle = tc; c.fill(); c.shadowColor = 'transparent';
+    c.fillStyle = C.rgba(ts, .8); [-.08, -.06, .06, .08].forEach(f => c.fillRect(-S * .2, S * f, S * .4, S * .008)); c.restore();
+    const deco = (x, y, kind) => { c.save(); c.translate(x, y); shade(c, S, .03, .01, .018, .35);
+      if (kind === 'herb') { c.beginPath(); c.arc(0, 0, S * .075, 0, TAU); c.fillStyle = '#b8643c'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .062, 0, TAU); c.fillStyle = '#4a3322'; c.fill(); for (let i = 0; i < 10; i++) { c.save(); c.rotate(i / 10 * TAU + r()); c.translate(S * .04, 0); c.scale(S * .07, S * .07); G.basil(c, r, i % 2 ? '#3f8a2d' : '#4f9a36'); c.restore(); } }
+      if (kind === 'salt') { c.beginPath(); c.arc(0, 0, S * .045, 0, TAU); c.fillStyle = '#efe9dd'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .034, 0, TAU); c.fillStyle = '#fbfaf6'; c.fill(); c.save(); scatterDots(c, r, 30, S * .03, S * .002, S * .004, ['#e8e4dc', '#ffffff'], [.6, 1], false); c.restore(); }
+      if (kind === 'oil') { c.beginPath(); c.arc(0, 0, S * .04, 0, TAU); c.fillStyle = 'rgba(190,160,40,.85)'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .018, 0, TAU); c.fillStyle = '#2d3b20'; c.fill(); c.fillStyle = 'rgba(255,255,230,.5)'; c.beginPath(); c.arc(-S * .015, -S * .015, S * .008, 0, TAU); c.fill(); }
+      if (kind === 'mill') { c.beginPath(); c.arc(0, 0, S * .035, 0, TAU); c.fillStyle = '#5a3e2a'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .012, 0, TAU); c.fillStyle = '#c9ced1'; c.fill(); }
+      c.restore(); };
+    const spots = [[.09, .12], [.91, .12], [.09, .88], [.91, .88]].filter((_, i) => i !== corner);
+    ['herb', 'salt', 'oil', 'mill'].sort(() => r() - .5).slice(0, 2).forEach((k, i) => deco(S * spots[i][0], S * spots[i][1], k));
+    const g = c.createLinearGradient(0, 0, S, S); g.addColorStop(0, 'rgba(255,240,205,.12)'); g.addColorStop(.6, 'rgba(255,240,205,0)'); g.addColorStop(1, 'rgba(60,30,10,.2)'); c.fillStyle = g; c.fillRect(0, 0, S, S);
+    const v = c.createRadialGradient(S / 2, S / 2, S * .35, S / 2, S / 2, S * .75); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(40,20,5,.35)'); c.fillStyle = v; c.fillRect(0, 0, S, S);
+    c.restore(); BACK.set(key, cv); return cv;
   }
-  function knife(c, S, x, y, rot) {
-    c.save(); c.translate(x, y); c.rotate(rot);
-    c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = S * .02; c.shadowOffsetX = S * .015; c.shadowOffsetY = S * .02;
-    c.beginPath(); c.moveTo(0, 0); c.lineTo(S * .34, -S * .005); c.quadraticCurveTo(S * .36, S * .04, S * .3, S * .075); c.lineTo(0, S * .075); c.closePath();
-    const g = c.createLinearGradient(0, 0, 0, S * .075); g.addColorStop(0, '#f4f6f7'); g.addColorStop(.6, '#c5cacd'); g.addColorStop(1, '#8d9397'); c.fillStyle = g; c.fill();
-    c.shadowColor = 'transparent'; rr(c, -S * .2, S * .012, S * .21, S * .05, S * .02); c.fillStyle = '#3a2a1f'; c.fill();
-    c.fillStyle = '#c9b89c'; [-.15, -.09, -.03].forEach(p => { c.beginPath(); c.arc(S * p, S * .037, S * .007, 0, TAU); c.fill(); });
+  function sunlight(c, S, t, seed, step = 0) {
+    const r = mulberry(seed), a = -.85 + r() * .15 + step * .09;
+    c.save(); rr(c, 0, 0, S, S, S * .05); c.clip(); c.globalCompositeOperation = 'lighter';
+    c.translate(S * .15, 0); c.rotate(a); const g = c.createLinearGradient(0, 0, S * .32, 0); g.addColorStop(0, 'rgba(255,230,170,0)'); g.addColorStop(.5, `rgba(255,230,170,${.05 + Math.sin(t * .6) * .015})`); g.addColorStop(1, 'rgba(255,230,170,0)'); c.fillStyle = g; c.fillRect(0, -S, S * .32, S * 3);
+    for (let i = 0; i < 26; i++) { const p = fr(t * (.02 + (i % 5) * .006) + i * .137), x = S * .03 + (i * 37 % 100) / 100 * S * .26 + Math.sin(t * .8 + i) * S * .01, y = -S * .2 + p * S * 1.6; c.fillStyle = `rgba(255,245,220,${.5 * Math.sin(p * Math.PI)})`; c.beginPath(); c.arc(x, y, S * (.0015 + (i % 3) * .001), 0, TAU); c.fill(); }
+    c.restore();
+  }
+  function burner(c, S, cx, cy, R, t, low) {
+    c.save(); const n = 26;
+    const glow = c.createRadialGradient(cx, cy, R * .9, cx, cy, R * 1.25); glow.addColorStop(0, 'rgba(90,140,255,.28)'); glow.addColorStop(1, 'rgba(90,140,255,0)'); c.fillStyle = glow; c.beginPath(); c.arc(cx, cy, R * 1.25, 0, TAU); c.fill();
+    for (let i = 0; i < n; i++) { const a = i / n * TAU, fl = (low ? .05 : .09) + Math.sin(t * 20 + i * 1.7) * .02; const x0 = cx + Math.cos(a) * R, y0 = cy + Math.sin(a) * R, x1 = cx + Math.cos(a) * R * (1 + fl), y1 = cy + Math.sin(a) * R * (1 + fl);
+      const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(120,170,255,.95)'); g.addColorStop(1, 'rgba(160,210,255,0)'); c.strokeStyle = g; c.lineWidth = S * .012; c.lineCap = 'round'; c.beginPath(); c.moveTo(x0, y0); c.lineTo(x1, y1); c.stroke(); }
     c.restore();
   }
   function steamPuffs(c, S, t, x, y, n = 5, w = .2) {
-    for (let i = 0; i < n; i++) { const p = fr(t * .5 + i / n); const px = x + Math.sin(i * 2 + t) * S * w * .3 + (i - n / 2) * S * w * .15, py = y - p * S * .3, r = S * (.03 + p * .07);
-      const g = c.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, `rgba(255,255,255,${.28 * Math.sin(p * Math.PI)})`); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(px - r, py - r, r * 2, r * 2); }
+    for (let i = 0; i < n; i++) { const p = fr(t * .45 + i / n); const px = x + Math.sin(i * 2 + t) * S * w * .3 + (i - n / 2) * S * w * .15, py = y - p * S * .32, r = S * (.03 + p * .08);
+      const g = c.createRadialGradient(px, py, 0, px, py, r); g.addColorStop(0, `rgba(255,255,255,${.34 * Math.sin(p * Math.PI)})`); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(px - r, py - r, r * 2, r * 2); }
   }
-  function vessel(c, S, type, glaze = 'white') {
-    const r = mulberry(4); c.save(); c.scale(S, S);
-    let a;
-    if (type === 'skillet') a = V.skillet(c, { x: .47, y: .5, R: .33 }, r);
-    else if (type === 'pot') a = V.pot(c, { x: .5, y: .5, R: .36, enamel: '#2b2b2e' }, r);
-    else if (type === 'dish') a = V.ovendish(c, { x: .5, y: .5, w: .72, h: .54, glaze }, r);
-    else if (type === 'colander') { a = V.bowl(c, { x: .5, y: .5, R: .36, glaze: 'white' }, r); c.fillStyle = '#b7bcc0'; c.beginPath(); c.arc(.5, .5, .36, 0, TAU); c.fill(); c.fillStyle = '#8d9397'; c.beginPath(); c.arc(.5, .5, .3, 0, TAU); c.fill(); c.fillStyle = 'rgba(30,30,30,.55)'; for (let i = 0; i < 70; i++) { const aa = r() * TAU, d = Math.sqrt(r()) * .27; c.beginPath(); c.arc(.5 + Math.cos(aa) * d, .5 + Math.sin(aa) * d, .006, 0, TAU); c.fill(); } a = { cx: .5, cy: .5, r: .28 }; }
-    else a = V.bowl(c, { x: .5, y: .5, R: .37, glaze }, r);
-    c.restore(); return a;
+  function sparkles(c, S, t, n = 14, x = S / 2, y = S / 2, R = S * .4) {
+    for (let i = 0; i < n; i++) { const p = fr(t * .5 + i * .31), a = i * 2.39, d = R * (.5 + (i * 29 % 50) / 100); const s = S * .014 * Math.sin(p * Math.PI); c.save(); c.translate(x + Math.cos(a) * d, y + Math.sin(a) * d); c.rotate(t + i); c.fillStyle = `rgba(255,244,200,${Math.sin(p * Math.PI)})`; c.beginPath(); for (let k = 0; k < 8; k++) { const rr_ = k % 2 ? s * .35 : s * 1.6; c.lineTo(Math.cos(k / 8 * TAU) * rr_, Math.sin(k / 8 * TAU) * rr_); } c.fill(); c.restore(); }
   }
-  function liquid(c, S, a, col, t, style = 'still') {
-    if (!col) return; c.save(); c.beginPath(); if (a.rect) rr(c, a.rect[0] * S, a.rect[1] * S, a.rect[2] * S, a.rect[3] * S, S * .02); else c.arc(a.cx * S, a.cy * S, a.r * S, 0, TAU); c.clip();
-    const cx = (a.cx || .5) * S, cy = (a.cy || .5) * S, R = (a.r || .3) * S;
-    const g = c.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R * 1.1); g.addColorStop(0, C.light(col, .15)); g.addColorStop(1, C.dark(col, .25)); c.fillStyle = g; c.fillRect(cx - R * 1.4, cy - R * 1.4, R * 2.8, R * 2.8);
-    if (style === 'vortex') { c.strokeStyle = C.rgba(C.light(col, .35), .5); c.lineWidth = S * .008; for (let i = 0; i < 5; i++) { c.beginPath(); for (let k = 0; k < 60; k++) { const aa = k / 60 * TAU * 1.5 + t * 6 + i * 1.25, rr_ = R * (.95 - k / 60 * .9); c.lineTo(cx + Math.cos(aa) * rr_, cy + Math.sin(aa) * rr_); } c.stroke(); } }
+
+  /* ---------------- tools ---------------- */
+  function knife(c, S, x, y, rot, style = 0) {
+    c.save(); c.translate(x, y); c.rotate(rot); shade(c, S, .025, .015, .025, .45);
+    const L = style ? .22 : .34;
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(S * L, -S * .004); c.quadraticCurveTo(S * (L + .02), S * .035, S * (L - .04), S * .068); c.lineTo(0, S * .07); c.closePath();
+    const g = c.createLinearGradient(0, 0, 0, S * .07); g.addColorStop(0, '#f6f8f9'); g.addColorStop(.55, '#c7ccd0'); g.addColorStop(1, '#8a9095'); c.fillStyle = g; c.fill();
+    c.shadowColor = 'transparent'; c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(S * .02, S * .006, S * (L - .06), S * .006);
+    rr(c, -S * .19, S * .012, S * .2, S * .048, S * .02); c.fillStyle = style ? '#2e3b4a' : '#3a2a1f'; c.fill();
+    c.fillStyle = '#d9cbb2'; [-.15, -.09, -.03].forEach(p => { c.beginPath(); c.arc(S * p, S * .036, S * .006, 0, TAU); c.fill(); });
     c.restore();
   }
-  function bubbles(c, S, a, col, t, n = 22) {
+  function woodBoard(c, S, round) {
+    const path = () => { c.beginPath(); if (round) c.arc(S * .5, S * .52, S * .38, 0, TAU); else rr(c, S * .1, S * .22, S * .8, S * .58, S * .04); };
+    c.save(); shade(c, S, .04, .012, .025, .45); path();
+    const g = c.createLinearGradient(0, S * .2, 0, S * .85); g.addColorStop(0, '#e0b988'); g.addColorStop(1, '#b98a57'); c.fillStyle = g; c.fill(); c.restore();
+    c.save(); path(); c.clip();
+    c.strokeStyle = 'rgba(110,70,35,.2)'; c.lineWidth = S * .0025; for (let i = 0; i < 28; i++) { const y = S * (.16 + i * .025); c.beginPath(); c.moveTo(0, y); for (let k = 1; k <= 12; k++) c.lineTo(S * k / 12, y + Math.sin(k + i) * S * .003); c.stroke(); }
+    c.strokeStyle = 'rgba(255,245,225,.3)'; c.lineWidth = S * .006; if (round) { c.beginPath(); c.arc(S * .5, S * .52, S * .372, Math.PI * .95, Math.PI * 1.6); c.stroke(); } c.restore();
+  }
+  function vessel(c, S, type, glaze = 'white', seed = 4) {
+    const r = mulberry(seed); c.save(); c.scale(S, S);
+    let a;
+    if (type === 'skillet') a = V.skillet(c, { x: .47, y: .52, R: .31 }, r);
+    else if (type === 'pot') a = V.pot(c, { x: .5, y: .52, R: .33, enamel: ['#2b2b2e', '#b8472e', '#2f4d6b', '#6b7a4a', '#e6e0d2'][seed % 5], inner: '#231d1b' }, r);
+    else if (type === 'dish') a = V.ovendish(c, { x: .5, y: .52, w: .7, h: .5, glaze }, r);
+    else if (type === 'colander') { V.bowl(c, { x: .5, y: .54, R: .33, glaze: 'white' }, r); c.fillStyle = '#b7bcc0'; c.beginPath(); c.arc(.5, .54, .33, 0, TAU); c.fill(); c.fillStyle = '#9aa0a4'; c.beginPath(); c.arc(.5, .54, .28, 0, TAU); c.fill(); c.fillStyle = 'rgba(30,30,30,.5)'; for (let i = 0; i < 90; i++) { const aa = r() * TAU, d = Math.sqrt(r()) * .26; c.beginPath(); c.arc(.5 + Math.cos(aa) * d, .54 + Math.sin(aa) * d, .005, 0, TAU); c.fill(); } a = { cx: .5, cy: .54, r: .26 }; }
+    else a = V.bowl(c, { x: .5, y: .52, R: .34, glaze }, r);
+    c.restore(); return a;
+  }
+  function liquid(c, S, a, col, t, style = 'still', level = 1) {
+    if (!col) return; c.save(); c.beginPath(); if (a.rect) rr(c, a.rect[0] * S, a.rect[1] * S, a.rect[2] * S, a.rect[3] * S, S * .02); else c.arc(a.cx * S, a.cy * S, a.r * S * (style === 'rising' ? level : 1), 0, TAU); c.clip();
+    const cx = (a.cx || .5) * S, cy = (a.cy || .52) * S, R = (a.r || .3) * S;
+    const g = c.createRadialGradient(cx - R * .3, cy - R * .3, R * .1, cx, cy, R * 1.1); g.addColorStop(0, C.light(col, .15)); g.addColorStop(1, C.dark(col, .25)); c.fillStyle = g; c.fillRect(cx - R * 1.4, cy - R * 1.4, R * 2.8, R * 2.8);
+    if (style === 'vortex') { c.strokeStyle = C.rgba(C.light(col, .35), .5); c.lineWidth = S * .008; for (let i = 0; i < 5; i++) { c.beginPath(); for (let k = 0; k < 60; k++) { const aa = k / 60 * TAU * 1.5 + t * 6 + i * 1.25, rr_ = R * (.95 - k / 60 * .9); c.lineTo(cx + Math.cos(aa) * rr_, cy + Math.sin(aa) * rr_); } c.stroke(); } }
+    c.fillStyle = 'rgba(255,252,240,.14)'; c.beginPath(); c.ellipse(cx - R * .35, cy - R * .4, R * .3, R * .07, -.6, 0, TAU); c.fill();
+    c.restore();
+  }
+  function bubbles(c, S, a, t, n = 24) {
     const cx = a.cx * S, cy = a.cy * S, R = a.r * S;
     for (let i = 0; i < n; i++) { const p = fr(t * (.6 + (i % 5) * .15) + i * .37); const aa = i * 2.4, d = R * (.15 + ((i * 37) % 80) / 100); const x = cx + Math.cos(aa) * d, y = cy + Math.sin(aa) * d, r = S * (.006 + p * .02);
       c.beginPath(); c.arc(x, y, r, 0, TAU); c.strokeStyle = `rgba(255,250,235,${.65 * (1 - p)})`; c.lineWidth = S * .003; c.stroke(); c.fillStyle = `rgba(255,255,255,${.15 * (1 - p)})`; c.fill(); }
   }
+  function contents(c, S, a, kinds, t, opts = {}) {
+    const R = (a.r || .28) * S, cx = (a.cx || .5) * S, cy = (a.cy || .52) * S;
+    kinds.forEach((kk, ki) => { const n = opts.n || 7; for (let i = 0; i < n; i++) { const r = mulberry(i * 17 + ki * 3 + (opts.seed || 0)); const ang = r() * TAU + t * (opts.spin || .25) * (1 + r() * .5), d = Math.sqrt(r()) * R * .8;
+      let sc = opts.scale || 1, al = 1; if (opts.drop != null) { const dp = clamp((opts.drop * 1.7 - (ki * .16 + i * .03)) / .35, 0, 1); if (dp <= 0) continue; sc *= 1 + (1 - dp) * 1.6; al = dp; }
+      const hop = opts.hop ? Math.max(0, Math.sin(t * 9 + i * 2.1)) * S * .012 : 0;
+      blit(c, spriteOf(kk, S * (opts.size || .075), 1 + i % 4), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d - hop + Math.sin(t * 2 + i) * S * .003, sc, r() * TAU + t * .3, al * (opts.alpha || 1)); } });
+  }
   function oven(c, S, t, glow, dishImg, temp) {
-    c.save(); c.shadowColor = 'rgba(0,0,0,.5)'; c.shadowBlur = S * .05; c.shadowOffsetY = S * .03;
-    rr(c, S * .1, S * .1, S * .8, S * .8, S * .04); const g = c.createLinearGradient(0, S * .1, 0, S * .9); g.addColorStop(0, '#3b3d41'); g.addColorStop(1, '#232427'); c.fillStyle = g; c.fill(); c.restore();
-    rr(c, S * .16, S * .14, S * .68, S * .1, S * .02); c.fillStyle = '#1a1b1d'; c.fill();
-    [.24, .34, .66, .76].forEach((x, i) => { c.beginPath(); c.arc(S * x, S * .19, S * .03, 0, TAU); c.fillStyle = '#c9cdd0'; c.fill(); c.save(); c.translate(S * x, S * .19); c.rotate(i === 0 ? glow * 2.4 - 1.2 : i * .7); c.fillStyle = '#2a2b2e'; c.fillRect(-S * .004, -S * .026, S * .008, S * .02); c.restore(); });
-    c.fillStyle = `rgba(255,${120 + glow * 60},60,${.35 + glow * .6})`; c.font = `500 ${S * .045}px "Spline Sans Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(temp ? Math.round(temp * glow) + '°' : '', S * .5, S * .19);
-    rr(c, S * .18, S * .3, S * .64, S * .5, S * .03); c.fillStyle = '#0d0d0f'; c.fill();
-    c.save(); rr(c, S * .2, S * .32, S * .6, S * .46, S * .025); c.clip();
-    const w = c.createRadialGradient(S * .5, S * .55, S * .05, S * .5, S * .55, S * .45); w.addColorStop(0, `rgba(255,160,60,${.15 + glow * .5})`); w.addColorStop(1, `rgba(120,40,10,${.1 + glow * .3})`); c.fillStyle = w; c.fillRect(0, 0, S, S);
-    for (let i = 0; i < 2; i++) { c.strokeStyle = `rgba(255,${90 + i * 40},40,${(.4 + .5 * Math.sin(t * 3 + i)) * glow})`; c.lineWidth = S * .01; c.beginPath(); c.moveTo(S * .22, S * (.36 + i * .38)); for (let k = 0; k < 8; k++) c.lineTo(S * (.22 + k * .08), S * (.36 + i * .38) + (k % 2 ? S * .02 : 0)); c.stroke(); }
-    if (dishImg) { const rise = 1 + glow * .06 + Math.sin(t * 2) * .01; const s = S * .38 * rise; c.globalAlpha = .95; c.drawImage(dishImg, S * .5 - s / 2, S * .57 - s / 2, s, s * .7); }
-    c.fillStyle = 'rgba(255,255,255,.07)'; c.beginPath(); c.moveTo(S * .2, S * .32); c.lineTo(S * .45, S * .32); c.lineTo(S * .3, S * .78); c.lineTo(S * .2, S * .78); c.fill();
-    c.restore(); rr(c, S * .3, S * .83, S * .4, S * .03, S * .015); c.fillStyle = '#b9bdc0'; c.fill();
+    c.save(); shade(c, S, .05, .01, .03, .5);
+    rr(c, S * .1, S * .08, S * .8, S * .84, S * .04); const g = c.createLinearGradient(0, S * .08, 0, S * .92); g.addColorStop(0, '#f1ece2'); g.addColorStop(1, '#d9d2c4'); c.fillStyle = g; c.fill(); c.restore();
+    rr(c, S * .15, S * .12, S * .7, S * .11, S * .02); c.fillStyle = '#2a2b2e'; c.fill();
+    [.22, .32, .68, .78].forEach((x, i) => { c.beginPath(); c.arc(S * x, S * .175, S * .03, 0, TAU); c.fillStyle = '#e9e5dc'; c.fill(); c.save(); c.translate(S * x, S * .175); c.rotate(i === 0 ? glow * 2.4 - 1.2 : i * .7); c.fillStyle = '#2a2b2e'; c.fillRect(-S * .004, -S * .026, S * .008, S * .02); c.restore(); });
+    c.fillStyle = `rgba(255,${130 + glow * 60},60,${.4 + glow * .6})`; c.font = `500 ${S * .045}px "Spline Sans Mono", monospace`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(temp ? Math.round(temp * Math.min(1, glow)) + '°' : '', S * .5, S * .175);
+    rr(c, S * .17, S * .29, S * .66, S * .52, S * .03); c.fillStyle = '#141416'; c.fill();
+    c.save(); rr(c, S * .19, S * .31, S * .62, S * .48, S * .025); c.clip();
+    const w = c.createRadialGradient(S * .5, S * .56, S * .05, S * .5, S * .56, S * .45); w.addColorStop(0, `rgba(255,170,70,${.2 + glow * .55})`); w.addColorStop(1, `rgba(120,40,10,${.1 + glow * .3})`); c.fillStyle = w; c.fillRect(0, 0, S, S);
+    for (let i = 0; i < 2; i++) { c.strokeStyle = `rgba(255,${90 + i * 40},40,${(.4 + .5 * Math.sin(t * 3 + i)) * glow})`; c.lineWidth = S * .01; c.beginPath(); c.moveTo(S * .21, S * (.35 + i * .4)); for (let k = 0; k < 8; k++) c.lineTo(S * (.21 + k * .083), S * (.35 + i * .4) + (k % 2 ? S * .02 : 0)); c.stroke(); }
+    c.strokeStyle = 'rgba(200,190,170,.25)'; c.lineWidth = S * .004; for (let k = 0; k < 7; k++) { c.beginPath(); c.moveTo(S * .19, S * (.58 + k * .003)); c.lineTo(S * .81, S * (.58 + k * .003)); c.stroke(); }
+    if (dishImg) { const rise = 1 + glow * .05 + Math.sin(t * 2) * .008; const s = S * .42 * rise; c.globalAlpha = .96; c.drawImage(dishImg, S * .5 - s / 2, S * .56 - s * .36, s, s * .72); }
+    c.fillStyle = 'rgba(255,255,255,.08)'; c.beginPath(); c.moveTo(S * .19, S * .31); c.lineTo(S * .45, S * .31); c.lineTo(S * .3, S * .79); c.lineTo(S * .19, S * .79); c.fill();
+    c.restore(); rr(c, S * .28, S * .84, S * .44, S * .035, S * .017); c.fillStyle = '#b9b3a6'; c.fill();
   }
 
   /* ---------------- scenes ---------------- */
   function kindsOf(id, seg) { const fl = A.flat(id); const ks = []; seg.ings.forEach(i => { const k = fl[i] && fl[i].k; if (k && !ks.includes(k)) ks.push(k); }); return ks; }
   function drawScene(c, S, t, seg, id, st) {
-    const kinds = st.kinds, vis = kinds.filter(k => K[k] && (K[k].g || K[k].grp)), liq = kinds.map(liquidOf).filter(Boolean);
-    const main = vis[0] || 'onion', P = 3.4, p = fr(t / P);
-    const baseCol = liq.length ? liq.reduce((a, b) => C.mix(a, b, .5)) : (st.recipeBase || '#e2cfa3');
+    const kinds = st.kinds, vis0 = kinds.filter(k => K[k] && (K[k].g || K[k].grp)), liq = kinds.map(liquidOf).filter(Boolean);
+    const vis = seg.pastaK && ['boil', 'drain', 'add'].includes(seg.act) && !vis0.includes(seg.pastaK) ? [seg.pastaK, ...vis0] : vis0;
+    const P = 3.6, p = fr(t / P), seed = st.seed;
+    const baseCol = liq.length ? mixLiq(kinds) : (st.hist.liq || st.recipeBase || '#e2cfa3');
+    const dough = st.doughy;
+    const prev = [...st.hist.kinds, ...(st.within || [])].filter((k, i, arr) => !vis.includes(k) && arr.indexOf(k) === i).slice(-5);
+    if (st.withinLiq && !st.hist.liq) st.hist = { ...st.hist, liq: st.withinLiq };
+    c.drawImage(backdrop(S, st.rseed), 0, 0);
+    const main = vis[Math.floor(t / P) % Math.max(1, vis.length)] || 'onion';
     switch (seg.act) {
       case 'chop': case 'peel': {
-        board(c, S);
-        const kinds2 = vis.length ? vis : ['onion']; const ki = Math.floor(t / P) % kinds2.length, kk = kinds2[ki];
-        const cuts = Math.floor(p * 9), whole = wholeOf(kk, S * .34);
-        if (seg.act === 'peel' && p < .45) { blit(c, whole, S * .5, S * .48, 1, t * 1.5); c.strokeStyle = C.light(K[kk].col, .2); c.lineWidth = S * .018; c.lineCap = 'round'; c.beginPath(); for (let i = 0; i < 30; i++) { const a = i / 30 * TAU * 2 + t * 1.5, r = S * (.1 + i * .004); c.lineTo(S * .5 + Math.cos(a) * r, S * .48 + Math.sin(a) * r + i * S * .006); } c.stroke(); break; }
-        const cx = S * (.66 - cuts * .025);
-        c.save(); c.beginPath(); c.rect(cx, 0, S, S); c.clip(); blit(c, whole, S * .66, S * .5, 1); c.restore();
-        for (let i = 0; i < cuts * 3; i++) { const r = mulberry(i * 13 + ki); blit(c, spriteOf(kk, S * .07, 1 + i % 5), S * (.24 + r() * .22), S * (.36 + r() * .3), 1, r() * TAU); }
-        const chop = Math.abs(Math.sin(p * 9 * Math.PI)); knife(c, S, cx - S * .02, S * .28 - chop * S * .09, .25 - chop * .2);
+        woodBoard(c, S, seed % 3 === 0);
+        if (!vis.length) { // cutting the dough (or whatever is already on the board)
+          const cuts = Math.floor(p * 8); c.save(); shade(c, S, .02, .005, .012, .3); c.fillStyle = dough; rr(c, S * .22, S * .4, S * .56, S * .2, S * .09); c.fill(); c.restore();
+          c.strokeStyle = C.rgba(C.dark(dough, .35), .7); c.lineWidth = S * .006; for (let i = 1; i <= cuts; i++) { const x = S * (.22 + i * .07); c.beginPath(); c.moveTo(x, S * .4); c.lineTo(x, S * .6); c.stroke(); }
+          const chop = Math.abs(Math.sin(p * 8 * Math.PI)); knife(c, S, S * (.22 + (cuts + 1) * .07) - S * .02, S * .3 - chop * S * .07, 1.35 - chop * .15); break;
+        }
+        const kk = main, whole = wholeOf(kk, S * .34);
+        if (seg.act === 'peel' && p < .5) {
+          const rot = t * 1.3; blit(c, whole, S * .52, S * .5, 1, rot);
+          c.strokeStyle = C.light((K[kk] || { col: '#c98d4a' }).col, .1); c.lineWidth = S * .016; c.lineCap = 'round'; c.beginPath();
+          for (let i = 0; i < 40; i++) { const a = i / 40 * TAU * 2.2 + rot, rad = S * (.12 + i * .004); c.lineTo(S * .52 + Math.cos(a) * rad, S * .5 + Math.sin(a) * rad + i * S * .006); } c.stroke();
+          knife(c, S, S * .6, S * .38, -.9 + Math.sin(t * 4) * .1, 1); break;
+        }
+        const cuts = Math.floor((seg.act === 'peel' ? (p - .5) * 2 : p) * 10), cx = S * (.68 - cuts * .026);
+        c.save(); c.beginPath(); c.rect(cx, 0, S, S); c.clip(); blit(c, whole, S * .68, S * .5, 1); c.restore();
+        for (let i = 0; i < cuts * 3; i++) { const r = mulberry(i * 13 + seed); blit(c, spriteOf(kk, S * .07, 1 + i % 5), S * (.22 + r() * .24), S * (.35 + r() * .32), 1, r() * TAU); }
+        const chop = Math.abs(Math.sin(p * 10 * Math.PI)); knife(c, S, cx - S * .02, S * .27 - chop * S * .085, .25 - chop * .2);
         break;
       }
-      case 'grate': {
-        board(c, S); const kk = vis[0] || 'carrot';
-        c.save(); rr(c, S * .42, S * .18, S * .2, S * .6, S * .02); const g = c.createLinearGradient(S * .42, 0, S * .62, 0); g.addColorStop(0, '#9aa0a4'); g.addColorStop(.5, '#e6e9eb'); g.addColorStop(1, '#8a9094'); c.fillStyle = g; c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = S * .03; c.fill(); c.restore();
-        c.fillStyle = 'rgba(40,40,45,.55)'; for (let y = 0; y < 12; y++) for (let x = 0; x < 4; x++) { c.beginPath(); c.ellipse(S * (.455 + x * .04), S * (.23 + y * .045), S * .008, S * .012, 0, 0, TAU); c.fill(); }
-        const up = Math.sin(t * 7) * S * .1; blit(c, wholeOf(kk, S * .26), S * .52, S * .45 + up, 1, 1.3);
-        const n = Math.floor(p * 26) + 6; for (let i = 0; i < n; i++) { const r = mulberry(i * 7); blit(c, spriteOf(kk, S * .06, 1 + i % 4), S * (.26 + r() * .5), S * (.74 + r() * .06), 1, r() * TAU); }
+      case 'grate': case 'zest': {
+        woodBoard(c, S, false); const zest = seg.act === 'zest'; const kk = zest ? (vis.find(k => /lemon|orange|lime/.test(k)) || 'lemon') : main;
+        c.save(); shade(c, S, .03, .012, .02, .4); if (zest) rr(c, S * .2, S * .44, S * .62, S * .09, S * .02); else rr(c, S * .42, S * .16, S * .2, S * .62, S * .02);
+        const g = zest ? c.createLinearGradient(0, S * .44, 0, S * .53) : c.createLinearGradient(S * .42, 0, S * .62, 0); g.addColorStop(0, '#9aa0a4'); g.addColorStop(.5, '#eef1f2'); g.addColorStop(1, '#8a9094'); c.fillStyle = g; c.fill(); c.restore();
+        c.fillStyle = 'rgba(40,40,45,.55)';
+        if (zest) { for (let x = 0; x < 22; x++) { c.beginPath(); c.ellipse(S * (.24 + x * .024), S * .485, S * .004, S * .01, 0, 0, TAU); c.fill(); } rr(c, S * .76, S * .455, S * .16, S * .06, S * .02); c.fillStyle = '#2b2b2e'; c.fill(); }
+        else for (let y = 0; y < 12; y++) for (let x = 0; x < 4; x++) { c.beginPath(); c.ellipse(S * (.455 + x * .04), S * (.21 + y * .045), S * .008, S * .012, 0, 0, TAU); c.fill(); }
+        const mv = Math.sin(t * 7) * S * (zest ? .12 : .1);
+        blit(c, wholeOf(kk, S * (zest ? .2 : .26)), zest ? S * .5 + mv : S * .52, zest ? S * .4 : S * .45 + mv, 1, zest ? t : 1.3);
+        const n = Math.floor(p * 28) + 6; for (let i = 0; i < n; i++) { const r = mulberry(i * 7 + seed); blit(c, spriteOf(zest ? 'lemon' : kk, S * .06, 1 + i % 4), S * (.26 + r() * .5), S * (zest ? .6 + r() * .12 : .74 + r() * .07), zest ? .7 : 1, r() * TAU); }
+        break;
+      }
+      case 'press': {
+        woodBoard(c, S, true); const squeeze = eio(Math.min(1, fr(t / 1.8) * 1.3));
+        for (let i = 0; i < Math.floor(p * 18); i++) { const r = mulberry(i + seed); blit(c, spriteOf('garlic', S * .05, 1 + i % 3), S * (.38 + r() * .24), S * (.62 + r() * .1), 1, r() * TAU); }
+        c.save(); c.translate(S * .5, S * .42); c.rotate(-.5); shade(c, S, .03, .012, .025, .45);
+        const g = c.createLinearGradient(0, -S * .03, 0, S * .03); g.addColorStop(0, '#c9ced1'); g.addColorStop(.5, '#f1f3f4'); g.addColorStop(1, '#8e9498'); c.fillStyle = g;
+        rr(c, -S * .3, -S * .025, S * .36, S * .05, S * .025); c.fill(); c.save(); c.rotate(-.35 * (1 - squeeze)); rr(c, -S * .3, -S * .075, S * .36, S * .045, S * .022); c.fill(); c.restore();
+        c.beginPath(); c.arc(S * .1, -S * .02, S * .07, 0, TAU); c.fill(); c.shadowColor = 'transparent'; c.fillStyle = 'rgba(40,40,45,.5)'; for (let i = 0; i < 9; i++) { c.beginPath(); c.arc(S * (.07 + (i % 3) * .03), -S * (.05 - Math.floor(i / 3) * .03), S * .005, 0, TAU); c.fill(); }
+        c.restore(); if (squeeze < .5) blit(c, wholeOf('garlic', S * .1), S * .56, S * .36, 1, .3);
+        break;
+      }
+      case 'melt': {
+        const a = vessel(c, S, 'skillet', 'white', st.vseed); burner(c, S, a.cx * S, a.cy * S, .34 * S, t, true);
+        const m = Math.min(1, p * 1.4); const cx = a.cx * S, cy = a.cy * S;
+        const pool = c.createRadialGradient(cx, cy, 0, cx, cy, S * (.06 + m * .18)); pool.addColorStop(0, 'rgba(245,205,95,.95)'); pool.addColorStop(.8, 'rgba(230,180,70,.8)'); pool.addColorStop(1, 'rgba(230,180,70,0)'); c.fillStyle = pool; c.beginPath(); c.arc(cx, cy, S * (.06 + m * .18), 0, TAU); c.fill();
+        const s = S * .12 * (1 - m * .85); if (s > 2) { c.save(); c.translate(cx, cy); c.rotate(.3); shade(c, S, .015, .005, .008, .3); rr(c, -s / 2, -s * .4, s, s * .8, s * .15); const g = c.createLinearGradient(-s / 2, -s / 2, s / 2, s / 2); g.addColorStop(0, '#fbe7a2'); g.addColorStop(1, '#e9c461'); c.fillStyle = g; c.fill(); c.restore(); }
+        for (let i = 0; i < 16; i++) { const q = fr(t * 1.5 + i * .17), r = mulberry(i); c.fillStyle = `rgba(255,250,220,${(1 - q) * .8})`; c.beginPath(); c.arc(cx + (r() - .5) * S * .3 * m, cy + (r() - .5) * S * .3 * m, S * .004 * (1 + q), 0, TAU); c.fill(); }
+        contents(c, S, a, vis, t, { hop: 1, size: .07, n: 5 });
         break;
       }
       case 'fry': {
-        const a = vessel(c, S, 'skillet');
+        const inPot = (seg.vessel || st.hist.vessel) === 'pot'; const a = vessel(c, S, inPot ? 'pot' : 'skillet', 'white', st.vseed); burner(c, S, a.cx * S, a.cy * S, (inPot ? .36 : .34) * S, t);
         c.save(); c.beginPath(); c.arc(a.cx * S, a.cy * S, a.r * S, 0, TAU); c.clip();
-        const oil = c.createRadialGradient(a.cx * S - S * .06, a.cy * S - S * .06, 0, a.cx * S, a.cy * S, a.r * S); oil.addColorStop(0, 'rgba(255,215,120,.22)'); oil.addColorStop(1, 'rgba(255,200,90,.05)'); c.fillStyle = oil; c.fillRect(0, 0, S, S);
-        const brown = Math.min(1, p * 1.4);
-        (vis.length ? vis : ['onion']).forEach((kk, ki) => { for (let i = 0; i < 9; i++) { const r = mulberry(i * 31 + ki * 7); const ang = r() * TAU + t * .4 * (ki % 2 ? 1 : -1), d = Math.sqrt(r()) * a.r * S * .8; const hop = Math.max(0, Math.sin(t * 9 + i * 2.1)) * S * .012; blit(c, spriteOf(kk, S * .085, 1 + i % 4), a.cx * S + Math.cos(ang) * d, a.cy * S + Math.sin(ang) * d - hop, 1 + hop / S * 3, r() * TAU + t * (r() - .5)); } });
-        c.fillStyle = `rgba(120,60,15,${brown * .22})`; c.fillRect(0, 0, S, S);
-        for (let i = 0; i < 26; i++) { const q = fr(t * 2.2 + i * .173); const r = mulberry(i * 5); c.fillStyle = `rgba(255,250,230,${(1 - q) * .8})`; c.beginPath(); c.arc(a.cx * S + (r() - .5) * a.r * S * 1.6, a.cy * S + (r() - .5) * a.r * S * 1.6 - q * S * .03, S * .004 * (1 + q), 0, TAU); c.fill(); }
+        const oil = c.createRadialGradient(a.cx * S - S * .06, a.cy * S - S * .06, 0, a.cx * S, a.cy * S, a.r * S); oil.addColorStop(0, 'rgba(255,215,120,.25)'); oil.addColorStop(1, 'rgba(255,200,90,.06)'); c.fillStyle = oil; c.fillRect(0, 0, S, S);
+        if (liq.length) { c.globalAlpha = .6; liquid(c, S, a, baseCol, t); c.globalAlpha = 1; }
+        contents(c, S, a, prev, t, { hop: 1, size: .065, n: 4, seed: 9, alpha: .9 });
+        contents(c, S, a, vis, t, { hop: 1, size: .085, n: 9, spin: .45 });
+        c.fillStyle = `rgba(130,65,15,${Math.min(1, p * 1.4) * .18})`; c.fillRect(0, 0, S, S);
+        for (let i = 0; i < 30; i++) { const q = fr(t * 2.2 + i * .173); const r = mulberry(i * 5); c.fillStyle = `rgba(255,250,230,${(1 - q) * .8})`; c.beginPath(); c.arc(a.cx * S + (r() - .5) * a.r * S * 1.6, a.cy * S + (r() - .5) * a.r * S * 1.6 - q * S * .03, S * .004 * (1 + q), 0, TAU); c.fill(); }
         c.restore();
-        const sa = t * 1.8; c.save(); c.translate(a.cx * S + Math.cos(sa) * S * .1, a.cy * S + Math.sin(sa) * S * .1); c.rotate(sa + 1.2); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = S * .02; c.shadowOffsetY = S * .015;
-        rr(c, -S * .05, -S * .04, S * .1, S * .08, S * .015); c.fillStyle = '#2f2f33'; c.fill(); rr(c, -S * .012, S * .03, S * .024, S * .3, S * .012); c.fillStyle = '#8a5a34'; c.fill(); c.restore();
+        const sa = t * 1.8; c.save(); c.translate(a.cx * S + Math.cos(sa) * S * .1, a.cy * S + Math.sin(sa) * S * .1); c.rotate(sa + 1.2); shade(c, S, .02, .01, .02, .4);
+        rr(c, -S * .05, -S * .04, S * .1, S * .08, S * .015); c.fillStyle = '#c69a66'; c.fill(); rr(c, -S * .011, S * .03, S * .022, S * .3, S * .011); c.fill(); c.restore();
         steamPuffs(c, S, t, a.cx * S, a.cy * S - S * .05, 4, .3);
         break;
       }
-      case 'boil': case 'add': {
-        const type = seg.act === 'add' ? (seg.vessel || 'pot') : (seg.vessel === 'skillet' ? 'skillet' : 'pot');
-        const a = vessel(c, S, type === 'dish' ? 'dish' : type === 'bowl' ? 'bowl' : type);
-        const col = seg.act === 'boil' ? (liq.length ? baseCol : st.recipeBase || '#d8c9a6') : (liq.length ? baseCol : st.recipeBase);
-        liquid(c, S, a, col, t);
-        const R = (a.r || .28) * S, cx = (a.cx || .5) * S, cy = (a.cy || .5) * S;
-        const items = (vis.length ? vis : []);
-        items.forEach((kk, ki) => { for (let i = 0; i < 7; i++) { const r = mulberry(i * 17 + ki * 3); const ang = r() * TAU + t * (.25 + r() * .2); const d = Math.sqrt(r()) * R * .78;
-          let x = cx + Math.cos(ang) * d, y = cy + Math.sin(ang) * d, sc = 1, al = 1;
-          if (seg.act === 'add') { const drop = clamp((p * 1.6 - (ki * .18 + i * .03)) / .35, 0, 1); if (drop <= 0) continue; sc = 1 + (1 - drop) * 1.6; al = drop; }
-          blit(c, spriteOf(kk, S * .075, 1 + i % 4), x, y + Math.sin(t * 2 + i) * S * .004, sc, r() * TAU + t * .3, al); } });
-        if (seg.act === 'boil') { bubbles(c, S, { cx: cx / S, cy: cy / S, r: R / S }, col, t); steamPuffs(c, S, t, cx, cy - R * .4, 6, .35); }
-        else { const q = fr(t / P * 2); c.strokeStyle = `rgba(255,255,255,${.4 * (1 - q)})`; c.lineWidth = S * .004; c.beginPath(); c.arc(cx, cy, R * q * .8, 0, TAU); c.stroke(); }
+      case 'boil': case 'add': case 'pour': case 'season': {
+        const want = seg.vessel || st.hist.vessel || 'pot';
+        const pastaBoil = seg.act === 'boil' && seg.pastaK && vis0.length === 0;
+        const vt = seg.act === 'boil' ? (seg.own === 'skillet' ? 'skillet' : 'pot') : want === 'dish' ? 'dish' : want === 'bowl' ? 'bowl' : want;
+        const hot = vt === 'pot' || vt === 'skillet';
+        const a = vessel(c, S, vt, ['white', 'celadon', 'blue', 'oat'][st.vseed % 4], st.vseed);
+        if (hot && seg.act !== 'add') burner(c, S, a.cx * S, a.cy * S, (vt === 'pot' ? .36 : .34) * S, t, seg.act === 'season');
+        const col = pastaBoil ? '#e9e6dc' : st.hist.liq || (liq.length ? baseCol : st.recipeBase);
+        const level = seg.act === 'pour' ? .35 + Math.min(1, p * 1.3) * .65 : 1;
+        if (col || seg.act === 'boil') liquid(c, S, a, col || '#d8c9a6', t, seg.act === 'pour' ? 'rising' : 'still', level);
+        if (!pastaBoil) contents(c, S, a, prev, t, { size: .065, n: 4, seed: 9 });
+        if (seg.act === 'add') contents(c, S, a, vis, t, { drop: p, size: .078 }); else contents(c, S, a, vis, t, { size: .075 });
+        if (seg.act === 'boil') { bubbles(c, S, a, t); steamPuffs(c, S, t, a.cx * S, a.cy * S - a.r * S * .4, 6, .35); }
+        if (seg.act === 'pour') {
+          const lc = liq.length ? baseCol : '#f2eee6'; const tip = Math.min(1, p * 3);
+          c.save(); c.translate(S * .78, S * .2); c.rotate(-.4 - tip * .6); shade(c, S, .03, .01, .02, .4); rr(c, -S * .08, -S * .1, S * .16, S * .2, S * .03); c.fillStyle = 'rgba(235,240,245,.92)'; c.fill(); c.shadowColor = 'transparent'; rr(c, -S * .065, -S * .02, S * .13, S * .1, S * .02); c.fillStyle = lc; c.fill(); c.restore();
+          c.strokeStyle = C.rgba(lc, .9); c.lineWidth = S * .018; c.lineCap = 'round'; c.beginPath(); c.moveTo(S * .7, S * .24); c.quadraticCurveTo(S * .64, S * .34, a.cx * S + S * .05 + Math.sin(t * 9) * S * .004, a.cy * S); c.stroke();
+          c.strokeStyle = `rgba(255,255,255,${.4 * (1 - fr(t * 2))})`; c.lineWidth = S * .004; c.beginPath(); c.arc(a.cx * S + S * .05, a.cy * S, S * .04 * fr(t * 2) + S * .01, 0, TAU); c.stroke();
+        }
+        if (seg.act === 'season') {
+          [[.34, 'salt'], [.64, 'pepper']].forEach(([x, w], i) => { const sh = Math.sin(t * 10 + i * 2) * S * .02; c.save(); c.translate(S * x + sh, S * .24); c.rotate(.3 + sh / S * 4); shade(c, S, .03, .01, .02, .45);
+            if (w === 'salt') { rr(c, -S * .035, -S * .06, S * .07, S * .12, S * .02); c.fillStyle = 'rgba(245,248,250,.95)'; c.fill(); c.fillStyle = '#c9ced1'; c.fillRect(-S * .035, -S * .07, S * .07, S * .025); }
+            else { rr(c, -S * .03, -S * .08, S * .06, S * .16, S * .025); c.fillStyle = '#6a4a33'; c.fill(); c.beginPath(); c.arc(0, -S * .085, S * .02, 0, TAU); c.fillStyle = '#3a2a1f'; c.fill(); }
+            c.restore();
+            for (let q = 0; q < 16; q++) { const f = fr(t * 1.8 + q / 16), r = mulberry(q + i * 30); c.fillStyle = w === 'salt' ? `rgba(255,255,255,${1 - f})` : `rgba(30,22,18,${1 - f})`; c.beginPath(); c.arc(S * x + (r() - .5) * S * .08, S * .31 + f * S * .24, S * .005, 0, TAU); c.fill(); } });
+        }
+        if (seg.act === 'add' && !hot) { const q = fr(t / P * 2); c.strokeStyle = `rgba(255,255,255,${.4 * (1 - q)})`; c.lineWidth = S * .004; c.beginPath(); c.arc(a.cx * S, a.cy * S, a.r * S * q * .8, 0, TAU); c.stroke(); }
+        if (hot && seg.act === 'add') steamPuffs(c, S, t, a.cx * S, a.cy * S - a.r * S * .4, 4, .3);
         break;
       }
-      case 'blend': {
-        const a = vessel(c, S, seg.vessel === 'pot' ? 'pot' : 'bowl');
-        const k = Math.min(1, p * 1.5); const col = liq.length ? baseCol : (vis.length ? C.mix(K[vis[0]].col, st.recipeBase || '#e8dcc0', .3) : '#ddd');
-        liquid(c, S, a, col, t, 'vortex');
+      case 'blend': case 'mash': {
+        const mash = seg.act === 'mash';
+        const a = vessel(c, S, seg.vessel === 'pot' || st.hist.vessel === 'pot' ? 'pot' : 'bowl', 'celadon', st.vseed);
+        const k = Math.min(1, p * 1.5); const col = liq.length || st.hist.liq ? (st.hist.liq ? C.mix(st.hist.liq, baseCol, .5) : baseCol) : (vis.length ? C.mix(K[vis[0]].col, st.recipeBase || '#e8dcc0', .4) : '#e8dcc0');
+        liquid(c, S, a, mash ? C.light(col, .1) : col, t, mash ? 'still' : 'vortex');
         const cx = a.cx * S, cy = a.cy * S, R = a.r * S;
-        vis.forEach((kk, ki) => { for (let i = 0; i < 8; i++) { const r = mulberry(i * 23 + ki); const ang = r() * TAU + t * 5; const d = R * (.8 - k * .7) * Math.sqrt(r()); blit(c, spriteOf(kk, S * .07, 1 + i % 3), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, 1 - k * .8, ang, 1 - k * .9, false); } });
-        c.save(); c.translate(cx + Math.sin(t * 13) * S * .006, cy); c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = S * .03; c.shadowOffsetX = S * .02; c.shadowOffsetY = S * .03;
-        c.beginPath(); c.arc(0, 0, S * .075, 0, TAU); c.fillStyle = '#e9ebec'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .05, 0, TAU); c.fillStyle = '#b4b9bc'; c.fill();
-        c.rotate(t * 30); c.fillStyle = '#7d8286'; c.fillRect(-S * .045, -S * .006, S * .09, S * .012); c.fillRect(-S * .006, -S * .045, S * .012, S * .09); c.restore();
+        [...prev, ...vis].forEach((kk, ki) => { for (let i = 0; i < 7; i++) { const r = mulberry(i * 23 + ki); const ang = r() * TAU + (mash ? 0 : t * 5); const d = R * (.8 - (mash ? 0 : k * .7)) * Math.sqrt(r()); blit(c, spriteOf(kk, S * .07, 1 + i % 3), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, 1 - k * .8, ang, 1 - k * .9, false); } });
+        if (mash) { const down = Math.abs(Math.sin(t * 5)); const mx = cx + Math.cos(t * 1.3) * R * .35, my = cy + Math.sin(t * 1.3) * R * .35; c.save(); c.translate(mx, my); shade(c, S, .03, .015 * (1 + down), .025 * (1 + down), .4);
+          c.strokeStyle = '#b9bec2'; c.lineWidth = S * .008; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(-S * .07, i * S * .018); c.quadraticCurveTo(0, i * S * .03, S * .07, i * S * .018); c.stroke(); } rr(c, -S * .012, -S * .3, S * .024, S * .28, S * .012); c.fillStyle = '#c69a66'; c.fill(); c.restore(); }
+        else { c.save(); c.translate(cx + Math.sin(t * 13) * S * .006, cy); shade(c, S, .03, .02, .03, .45); c.beginPath(); c.arc(0, 0, S * .075, 0, TAU); c.fillStyle = '#e9ebec'; c.fill(); c.shadowColor = 'transparent'; c.beginPath(); c.arc(0, 0, S * .05, 0, TAU); c.fillStyle = '#b4b9bc'; c.fill();
+          c.rotate(t * 30); c.fillStyle = '#7d8286'; c.fillRect(-S * .045, -S * .006, S * .09, S * .012); c.fillRect(-S * .006, -S * .045, S * .012, S * .09); c.restore(); }
         break;
       }
       case 'mix': case 'whisk': {
-        const a = vessel(c, S, seg.vessel === 'pot' ? 'pot' : seg.vessel === 'skillet' ? 'skillet' : 'bowl', 'celadon');
+        const a = vessel(c, S, seg.vessel === 'pot' ? 'pot' : seg.vessel === 'skillet' ? 'skillet' : 'bowl', ['celadon', 'blue', 'butter', 'white'][st.vseed % 4], st.vseed);
         const cx = a.cx * S, cy = a.cy * S, R = a.r * S;
-        if (liq.length) liquid(c, S, a, baseCol, t, seg.act === 'whisk' ? 'vortex' : 'still');
-        (vis.length ? vis : []).forEach((kk, ki) => { for (let i = 0; i < 8; i++) { const r = mulberry(i * 11 + ki * 5); const ang = r() * TAU + t * (1.2 + ki * .15); const d = R * (.2 + r() * .62); blit(c, spriteOf(kk, S * .075, 1 + i % 4), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, 1, ang * 2); } });
-        const sa = t * (seg.act === 'whisk' ? 7 : 2.4); c.save(); c.translate(cx + Math.cos(sa) * R * .45, cy + Math.sin(sa) * R * .45); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = S * .02; c.shadowOffsetX = S * .02; c.shadowOffsetY = S * .03;
+        const col = liq.length ? baseCol : st.hist.liq; if (col) liquid(c, S, a, col, t, seg.act === 'whisk' ? 'vortex' : 'still');
+        [...prev, ...vis].forEach((kk, ki) => { for (let i = 0; i < 7; i++) { const r = mulberry(i * 11 + ki * 5); const ang = r() * TAU + t * (1.2 + ki * .15); const d = R * (.2 + r() * .62); blit(c, spriteOf(kk, S * .072, 1 + i % 4), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, 1, ang * 2); } });
+        const sa = t * (seg.act === 'whisk' ? 7 : 2.4); c.save(); c.translate(cx + Math.cos(sa) * R * .45, cy + Math.sin(sa) * R * .45); shade(c, S, .02, .02, .03, .4);
         if (seg.act === 'whisk') { c.strokeStyle = '#d7dbde'; c.lineWidth = S * .005; for (let i = -2; i <= 2; i++) { c.beginPath(); c.ellipse(0, 0, S * .05, S * .02 * Math.abs(i) + S * .004, 0, 0, TAU); c.stroke(); } c.rotate(sa); rr(c, -S * .01, S * .04, S * .02, S * .28, S * .01); c.fillStyle = '#9aa0a4'; c.fill(); }
         else { c.rotate(sa + .8); c.beginPath(); c.ellipse(0, 0, S * .035, S * .05, 0, 0, TAU); c.fillStyle = '#c69a66'; c.fill(); rr(c, -S * .01, S * .04, S * .02, S * .32, S * .01); c.fill(); }
         c.restore();
         break;
       }
-      case 'drain': {
-        const a = vessel(c, S, 'colander'), cx = a.cx * S, cy = a.cy * S, R = a.r * S;
-        (vis.length ? vis : ['penne']).forEach((kk, ki) => { for (let i = 0; i < 10; i++) { const r = mulberry(i * 19 + ki); const ang = r() * TAU, d = Math.sqrt(r()) * R * .8; blit(c, spriteOf(kk, S * .075, 1 + i % 4), cx + Math.cos(ang) * d, cy + Math.sin(ang) * d + Math.sin(t * 5 + i) * S * .004, 1, r() * TAU); } });
-        for (let i = 0; i < 40; i++) { const q = fr(t * 1.5 + i * .09), r = mulberry(i * 3); const ang = r() * TAU, d = R * (.9 + q * .5); c.fillStyle = `rgba(160,205,235,${.7 * (1 - q)})`; c.beginPath(); c.arc(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, S * .006, 0, TAU); c.fill(); }
-        c.strokeStyle = 'rgba(180,215,240,.55)'; c.lineWidth = S * .018; c.lineCap = 'round'; c.beginPath(); c.moveTo(cx - S * .2, cy - S * .42); c.quadraticCurveTo(cx - S * .1, cy - S * .3, cx - S * .05 + Math.sin(t * 8) * S * .01, cy - S * .05); c.stroke();
+      case 'drain': case 'rinse': {
+        const a = vessel(c, S, 'colander', 'white', seed), cx = a.cx * S, cy = a.cy * S, R = a.r * S;
+        contents(c, S, a, vis.length ? vis : prev.slice(-2), t, { size: .075, n: 9, spin: .05 });
+        if (seg.act === 'rinse') { c.save(); shade(c, S, .03, .01, .02, .4); rr(c, S * .3, S * .02, S * .08, S * .2, S * .03); const g = c.createLinearGradient(S * .3, 0, S * .38, 0); g.addColorStop(0, '#9aa0a4'); g.addColorStop(.5, '#f1f3f4'); g.addColorStop(1, '#8a9094'); c.fillStyle = g; c.fill(); c.restore(); }
+        for (let i = 0; i < 44; i++) { const q = fr(t * 1.5 + i * .09), r = mulberry(i * 3); const ang = r() * TAU, d = R * (.9 + q * .5); c.fillStyle = `rgba(160,205,235,${.7 * (1 - q)})`; c.beginPath(); c.arc(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, S * .006, 0, TAU); c.fill(); }
+        c.strokeStyle = 'rgba(190,225,245,.6)'; c.lineWidth = S * .02; c.lineCap = 'round'; c.beginPath(); c.moveTo(S * .34, S * .2); c.quadraticCurveTo(S * .36, S * .35, cx - S * .02 + Math.sin(t * 8) * S * .01, cy - S * .04); c.stroke();
         break;
       }
-      case 'shape': {
-        board(c, S); const kk = vis[0] || 'mince'; const n = 6;
-        for (let i = 0; i < n; i++) { const r = mulberry(i * 5); const done = clamp(p * 1.4 - i * .15, 0, 1); const x = S * (.22 + (i % 3) * .28), y = S * (.38 + Math.floor(i / 3) * .24);
-          if (done < 1) for (let q = 0; q < 6; q++) blit(c, spriteOf(kk, S * .05, 1 + q % 3), x + Math.cos(q + r()) * S * .05 * (1 - done), y + Math.sin(q * 2 + r()) * S * .05 * (1 - done), 1, q);
-          if (done > 0) { const g = c.createRadialGradient(x - S * .02, y - S * .02, S * .005, x, y, S * .07); const col = K[kk] ? K[kk].col : '#d9a560'; g.addColorStop(0, C.light(col, .3)); g.addColorStop(1, C.dark(col, .25)); c.save(); c.globalAlpha = done; c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = S * .02; c.shadowOffsetY = S * .015; c.fillStyle = g; c.beginPath(); c.ellipse(x, y, S * .06 * (1 + (1 - done) * .3), S * .06 * done + S * .01, 0, 0, TAU); c.fill(); c.restore(); } }
+      case 'roll': case 'knead': case 'shape': case 'rise': case 'brush': {
+        woodBoard(c, S, false);
+        c.save(); c.translate(S * .5, S * .5); scatterDots(c, mulberry(seed + 1), 90, S * .32, S * .002, S * .005, ['#fbf8f1', '#efe8da'], [.4, .9], false); c.restore();
+        if (seg.act === 'roll') { const w = S * (.2 + Math.min(1, p * 1.3) * .22), h = S * (.16 + Math.min(1, p * 1.3) * .12); c.save(); c.translate(S * .5, S * .5); shade(c, S, .02, .005, .01, .3); c.beginPath(); c.ellipse(0, 0, w, h, 0, 0, TAU); c.fillStyle = dough; c.fill(); c.restore();
+          const px = Math.sin(t * 3) * w * .6; c.save(); c.translate(S * .5 + px, S * .5); shade(c, S, .03, .01, .025, .45); const g = c.createLinearGradient(-S * .04, 0, S * .04, 0); g.addColorStop(0, '#b98a57'); g.addColorStop(.5, '#e7c393'); g.addColorStop(1, '#a8784a'); c.fillStyle = g; rr(c, -S * .035, -S * .3, S * .07, S * .6, S * .03); c.fill(); rr(c, -S * .018, -S * .42, S * .036, S * .12, S * .018); c.fill(); rr(c, -S * .018, S * .3, S * .036, S * .12, S * .018); c.fill(); c.restore(); }
+        else if (seg.act === 'knead' || seg.act === 'rise') { const b = seg.act === 'rise' ? 1 + Math.min(1, p) * .35 + Math.sin(t * 1.5) * .02 : 1; const sq = seg.act === 'knead' ? Math.sin(t * 5) * .1 : 0; c.save(); c.translate(S * .5, S * .52); c.scale(b * (1 + sq), b * (1 - sq)); shade(c, S, .03, .008, .018, .35); blobPath(c, S * .17, mulberry(seed), 12, .06); const g = c.createRadialGradient(-S * .05, -S * .05, S * .02, 0, 0, S * .2); g.addColorStop(0, C.light(dough, .25)); g.addColorStop(1, C.dark(dough, .1)); c.fillStyle = g; c.fill(); c.restore();
+          if (seg.act === 'knead') { c.strokeStyle = C.rgba(C.dark(dough, .25), .4); c.lineWidth = S * .006; c.beginPath(); c.arc(S * .5, S * .52, S * .08, t * 3, t * 3 + 2); c.stroke(); }
+          else { c.save(); c.globalAlpha = .82; c.translate(S * .5, S * .5); c.rotate(-.2); shade(c, S, .02, .005, .01, .3); rr(c, -S * .3, -S * .25 * (1 + p * .2), S * .6, S * .5 * (1 + p * .2), S * .02); c.fillStyle = '#f1ece2'; c.fill(); c.fillStyle = 'rgba(200,71,58,.6)'; c.fillRect(-S * .3, -S * .2, S * .6, S * .01); c.fillRect(-S * .3, S * .18, S * .6, S * .01); c.restore(); } }
+        else if (seg.act === 'brush') { for (let i = 0; i < 6; i++) { const x = S * (.3 + (i % 3) * .2), y = S * (.4 + Math.floor(i / 3) * .2); c.save(); shade(c, S, .02, .006, .012, .35); c.beginPath(); c.arc(x, y, S * .075, 0, TAU); c.fillStyle = '#e9c07a'; c.fill(); c.restore(); const shine = clamp((p * 1.4 - i * .12) * 3, 0, 1); c.fillStyle = `rgba(255,240,200,${shine * .5})`; c.beginPath(); c.ellipse(x - S * .02, y - S * .025, S * .04, S * .02, -.5, 0, TAU); c.fill(); }
+          const bi = Math.min(5, Math.floor(p * 1.4 / .2)), bx = S * (.3 + (bi % 3) * .2), by = S * (.4 + Math.floor(bi / 3) * .2); c.save(); c.translate(bx + Math.sin(t * 8) * S * .03, by - S * .02); c.rotate(-.7); shade(c, S, .02, .01, .02, .4); rr(c, -S * .02, -S * .03, S * .04, S * .06, S * .008); c.fillStyle = '#f0dca8'; c.fill(); rr(c, -S * .012, -S * .25, S * .024, S * .22, S * .012); c.fillStyle = '#b98a57'; c.fill(); c.restore(); }
+        else { const kk = vis[0]; const n = 6;
+          for (let i = 0; i < n; i++) { const r = mulberry(i * 5 + seed); const done = clamp(p * 1.4 - i * .15, 0, 1); const x = S * (.24 + (i % 3) * .26), y = S * (.4 + Math.floor(i / 3) * .22);
+            if (done < 1 && kk) for (let q = 0; q < 6; q++) blit(c, spriteOf(kk, S * .05, 1 + q % 3), x + Math.cos(q + r()) * S * .05 * (1 - done), y + Math.sin(q * 2 + r()) * S * .05 * (1 - done), 1, q);
+            if (done > 0) { const g = c.createRadialGradient(x - S * .02, y - S * .02, S * .005, x, y, S * .07); const col = kk && K[kk] ? K[kk].col : dough; g.addColorStop(0, C.light(col, .3)); g.addColorStop(1, C.dark(col, .25)); c.save(); c.globalAlpha = done; shade(c, S, .02, .006, .015, .4); c.fillStyle = g; c.beginPath(); c.ellipse(x, y, S * .06 * (1 + (1 - done) * .3), S * .06 * done + S * .01, 0, 0, TAU); c.fill(); c.restore(); } } }
         break;
       }
       case 'bake': case 'preheat': {
         const glow = seg.act === 'preheat' ? Math.min(1, p * 1.3) : .85 + Math.sin(t * 2) * .1;
-        oven(c, S, t, glow, seg.act === 'bake' ? st.dishImg : null, seg.temp ? +seg.temp : (seg.act === 'preheat' ? 200 : 0));
+        oven(c, S, t, glow, seg.act === 'bake' ? (st.finalImg || st.dishImg) : null, seg.temp ? +seg.temp : (seg.act === 'preheat' ? 200 : 0));
+        if (seg.act === 'bake') steamPuffs(c, S, t, S * .5, S * .28, 3, .3);
         break;
       }
-      case 'rest': {
-        const a = vessel(c, S, seg.vessel === 'pot' ? 'pot' : 'bowl', 'blue');
-        if (liq.length || st.recipeBase) liquid(c, S, a, baseCol, 0);
-        vis.forEach((kk, ki) => { for (let i = 0; i < 6; i++) { const r = mulberry(i * 7 + ki); const ang = r() * TAU, d = Math.sqrt(r()) * a.r * S * .75; blit(c, spriteOf(kk, S * .07, 1 + i % 3), a.cx * S + Math.cos(ang) * d, a.cy * S + Math.sin(ang) * d, seg.rise ? 1 + Math.sin(t) * .06 + p * .2 : 1, r() * TAU); } });
-        if (seg.cold) { for (let i = 0; i < 18; i++) { const q = fr(t * .25 + i / 18), r = mulberry(i); c.fillStyle = `rgba(220,238,255,${.8 * Math.sin(q * Math.PI)})`; c.font = `${S * (.03 + r() * .03)}px Georgia`; c.fillText('❄', S * r(), S * q); } }
-        c.save(); c.translate(S * .82, S * .18); c.shadowColor = 'rgba(0,0,0,.4)'; c.shadowBlur = S * .02; c.beginPath(); c.arc(0, 0, S * .09, 0, TAU); c.fillStyle = '#f3efe6'; c.fill(); c.shadowColor = 'transparent'; c.strokeStyle = '#29241f'; c.lineWidth = S * .008; c.lineCap = 'round';
-        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(t * 1.5 - 1.57) * S * .065, Math.sin(t * 1.5 - 1.57) * S * .065); c.moveTo(0, 0); c.lineTo(Math.cos(t * .12 - 1.57) * S * .045, Math.sin(t * .12 - 1.57) * S * .045); c.stroke(); c.restore();
+      case 'rest': case 'chill': {
+        const a = vessel(c, S, st.hist.vessel === 'pot' ? 'pot' : 'bowl', ['blue', 'celadon', 'white'][st.vseed % 3], st.vseed);
+        const col = st.hist.liq || (liq.length ? baseCol : null); if (col) liquid(c, S, a, col, 0);
+        contents(c, S, a, [...prev, ...vis].slice(-5), t * .2, { size: .07, n: 5 });
+        if (seg.act === 'chill' || seg.cold) { c.save(); c.fillStyle = 'rgba(200,225,255,.12)'; c.fillRect(0, 0, S, S); c.restore(); for (let i = 0; i < 22; i++) { const q = fr(t * .2 + i / 22), r = mulberry(i); c.save(); c.globalAlpha = .8 * Math.sin(q * Math.PI); c.translate(S * r(), S * q); c.rotate(t * .5 + i); c.strokeStyle = '#eef6ff'; c.lineWidth = S * .003; const s = S * (.012 + r() * .014); for (let k = 0; k < 3; k++) { c.rotate(Math.PI / 3); c.beginPath(); c.moveTo(-s, 0); c.lineTo(s, 0); c.stroke(); } c.restore(); } }
+        c.save(); c.translate(S * .82, S * .18); shade(c, S, .02, .006, .012, .4); c.beginPath(); c.arc(0, 0, S * .085, 0, TAU); c.fillStyle = '#f7f3ea'; c.fill(); c.shadowColor = 'transparent'; c.strokeStyle = '#29241f'; c.lineWidth = S * .007; c.lineCap = 'round';
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(t * 1.5 - 1.57) * S * .06, Math.sin(t * 1.5 - 1.57) * S * .06); c.moveTo(0, 0); c.lineTo(Math.cos(t * .12 - 1.57) * S * .042, Math.sin(t * .12 - 1.57) * S * .042); c.stroke(); c.restore();
         break;
       }
-      case 'season': {
-        const a = vessel(c, S, seg.vessel === 'skillet' ? 'skillet' : 'pot'); liquid(c, S, a, st.recipeBase || baseCol, t);
-        [[.36, 'salt'], [.62, 'pepper']].forEach(([x, w], i) => { const sh = Math.sin(t * 10 + i * 2) * S * .02; c.save(); c.translate(S * x + sh, S * .3); c.rotate(.3 + sh / S * 4); c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = S * .03; c.shadowOffsetY = S * .02;
-          if (w === 'salt') { rr(c, -S * .035, -S * .06, S * .07, S * .12, S * .02); c.fillStyle = 'rgba(235,240,245,.9)'; c.fill(); c.fillStyle = '#c9ced1'; c.fillRect(-S * .035, -S * .07, S * .07, S * .025); }
-          else { rr(c, -S * .03, -S * .08, S * .06, S * .16, S * .025); c.fillStyle = '#6a4a33'; c.fill(); c.beginPath(); c.arc(0, -S * .085, S * .02, 0, TAU); c.fillStyle = '#3a2a1f'; c.fill(); }
-          c.restore();
-          for (let q = 0; q < 16; q++) { const f = fr(t * 1.8 + q / 16), r = mulberry(q + i * 30); c.fillStyle = w === 'salt' ? `rgba(255,255,255,${1 - f})` : `rgba(30,22,18,${1 - f})`; c.beginPath(); c.arc(S * x + (r() - .5) * S * .08, S * .36 + f * S * .25, S * .005, 0, TAU); c.fill(); } });
-        break;
-      }
-      default: { // serve: the dish comes together on the plate
-        if (st.dishImg) { const q = Math.min(1, p * 1.5); const s = S * .82; c.save(); c.globalAlpha = q; c.translate(S / 2, S / 2); c.scale(.9 + q * .1, .9 + q * .1); c.drawImage(st.dishImg, -s / 2, -s / 2, s, s); c.restore(); }
-        vis.forEach((kk, ki) => { for (let i = 0; i < 5; i++) { const r = mulberry(i * 9 + ki); const drop = clamp(p * 1.8 - ki * .2 - i * .06, 0, 1); if (drop <= 0 || drop >= 1) continue; blit(c, spriteOf(kk, S * .07, 1 + i % 3), S * (.3 + r() * .4), S * (.3 + r() * .4), 1 + (1 - drop) * 2, r() * TAU, drop); } });
+      default: { // sprinkle, serve and the final reveal
+        const final = seg.act === 'result';
+        const img = st.finalImg || st.dishImg;
+        const q = final ? eio(Math.min(1, t / 2.2)) : Math.min(1, p * 1.5);
+        if (final) { c.save(); c.translate(S / 2, S / 2); c.rotate(t * .1); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 12; i++) { c.rotate(TAU / 12); const g = c.createLinearGradient(0, 0, S * .6, 0); g.addColorStop(0, `rgba(255,225,160,${.12 * q})`); g.addColorStop(1, 'rgba(255,225,160,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(S * .6, -S * .05); c.lineTo(S * .6, S * .05); c.fill(); } c.restore(); }
+        if (img) { const s = S * (final ? .86 : .8); c.save(); c.globalAlpha = seg.act === 'sprinkle' ? 1 : q; c.translate(S / 2, S / 2); c.rotate(final ? (1 - q) * -.6 : 0); const z = final ? .7 + q * .3 : .92 + q * .08; c.scale(z, z); c.drawImage(img, -s / 2, -s / 2, s, s); c.restore(); }
+        const drops = seg.act === 'sprinkle' ? (vis.length ? vis : prev) : vis;
+        drops.forEach((kk, ki) => { for (let i = 0; i < 6; i++) { const r = mulberry(i * 9 + ki + seed); const dp = clamp(p * 1.8 - ki * .2 - i * .06, 0, 1); if (dp <= 0 || dp >= 1) continue; blit(c, spriteOf(kk, S * .06, 1 + i % 3), S * (.32 + r() * .36), S * (.32 + r() * .36), 1 + (1 - dp) * 2, r() * TAU, dp); } });
+        if (seg.act === 'sprinkle') { const hx = S * (.46 + Math.sin(t * 2) * .12), hy = S * .2; c.save(); c.translate(hx, hy); shade(c, S, .03, .01, .03, .35); c.fillStyle = '#e8c3a2'; c.beginPath(); c.ellipse(0, 0, S * .05, S * .04, .4, 0, TAU); c.fill(); c.beginPath(); c.ellipse(S * .03, S * .035, S * .015, S * .025, .3, 0, TAU); c.fill(); c.restore(); }
+        if (final) sparkles(c, S, t, 18, S / 2, S / 2, S * .42); else if (seg.act === 'serve') sparkles(c, S, t, 6, S / 2, S / 2, S * .36);
       }
     }
+    sunlight(c, S, t, st.rseed, st.step);
   }
 
   /* ---------------- player ---------------- */
-  let cur = null;
-  function play(cv, capEl, id, text) {
+  let cur = null; const FINAL = new Map();
+  function finalImg(id, S) { const key = id + '|' + S; if (!FINAL.has(key)) { if (FINAL.size > 6) FINAL.clear(); try { FINAL.set(key, renderScene(A.scene(id), S)); } catch (e) { FINAL.set(key, null); } } return FINAL.get(key); }
+  function build(id, text, stepIdx, isLast) { const segs = segmentsOf(id, text); if (isLast) segs.push({ act: 'result', word: 'Klart', ings: [], text: '' }); return segs; }
+  function withinOf(st, segs, si) {
+    const fl = A.flat(st.id), ks = [], ls = [];
+    segs.slice(0, si).forEach(sg => { if (!IN_VESSEL.has(sg.act)) return; sg.ings.forEach(ii => { const k = fl[ii] && fl[ii].k; if (!k || !K[k]) return; if ((K[k].g || K[k].grp) && !ks.includes(k)) ks.push(k); if (K[k].liq) ls.push(k); }); });
+    st.within = ks; st.withinLiq = mixLiq(ls); st.hist = { ...st.hist0 };
+  }
+  function stateFor(id, stepIdx) {
+    const sc = A.scene(id), base = sc.vessels.find(v => v.base), fl = A.flat(id);
+    const h = history(id, stepIdx);
+    return { id, step: stepIdx, recipeBase: base ? base.base.col : null, dishImg: A.THUMB_IMG[id], kinds: [], hist: h, hist0: h, seed: (strHash(id) + stepIdx * 7919) % 100000, rseed: strHash(id) % 100000, vseed: strHash(id + 'v') % 1000, doughy: fl.some(f => /(vego|soja|formbar )färs|^\d+ g färs/.test(f.t)) ? '#8a5a3a' : '#ecd5a8' };
+  }
+  function play(cv, capEl, id, text, stepIdx = 0, isLast = false) {
     stop();
-    const segs = segments(id, text); if (!segs.length) return;
-    const sc = A.scene(id); const base = sc.vessels.find(v => v.base); let dishImg = null; const b = A.THUMB_IMG[id]; if (b) dishImg = b;
-    const st = { recipeBase: base ? base.base.col : null, dishImg, kinds: [] };
+    const segs = build(id, text, stepIdx, isLast); if (!segs.length) return;
+    const st = stateFor(id, stepIdx);
     cur = { raf: 0, t0: performance.now(), segs, cv, capEl, id, st, last: -1 };
-    const fl = A.flat(id);
+    const fl = A.flat(id), P = 3.6;
     const loop = now => {
       if (!cur || !cv.isConnected) return;
       const r = cv.getBoundingClientRect(), D = Math.min(2, window.devicePixelRatio || 1), S = Math.round(r.width * D);
+      if (!S) { cur.raf = requestAnimationFrame(loop); return; }
       if (cv.width !== S) { cv.width = cv.height = S; SPR.clear(); }
-      const t = (now - cur.t0) / 1000, P = 3.4, si = Math.floor(t / P) % segs.length, seg = segs[si];
-      if (si !== cur.last) { cur.last = si; st.kinds = kindsOf(id, seg); const names = seg.ings.map(i => fl[i] && A.shortName(fl[i].t)).filter(Boolean).slice(0, 4); capEl.innerHTML = `<b>${seg.word}</b>${names.length ? ' · ' + A.esc(names.join(', ')) : ''}${segs.length > 1 ? `<span>${si + 1}/${segs.length}</span>` : ''}`; }
+      const t = (now - cur.t0) / 1000;
+      let si = Math.floor(t / P) % segs.length; const res = segs[segs.length - 1].act === 'result';
+      if (res && t >= P * (segs.length - 1)) si = segs.length - 1;
+      const seg = segs[si], ts = res && si === segs.length - 1 ? t - P * (segs.length - 1) : t % P;
+      if (si !== cur.last) { cur.last = si; st.kinds = kindsOf(id, seg); withinOf(st, segs, si); if (['result', 'serve', 'bake', 'sprinkle'].includes(seg.act)) st.finalImg = finalImg(id, S); const names = seg.ings.map(i => fl[i] && A.shortName(fl[i].t)).filter(Boolean).slice(0, 4); capEl.innerHTML = seg.act === 'result' ? `<b>Klart</b> · ${A.esc(A.R[id].title)}` : `<b>${seg.word}</b>${names.length ? ' · ' + A.esc(names.join(', ')) : ''}${segs.length > 1 ? `<span>${si + 1}/${segs.length}</span>` : ''}`; }
       const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, S, S);
-      try { drawScene(c, S, t % P + (A.REDUCED ? 1.7 : 0), seg, id, st); } catch (e) { console.warn('process', e); }
+      try { drawScene(c, S, A.REDUCED ? 1.8 : ts, seg, id, st); } catch (e) { console.warn('process', e); }
       if (!A.REDUCED) cur.raf = requestAnimationFrame(loop);
     };
     cur.raf = requestAnimationFrame(loop);
   }
   function stop() { if (cur) cancelAnimationFrame(cur.raf); cur = null; }
-  function renderFrame(cv, id, text, si, t) { const segs = segments(id, text), seg = segs[si % segs.length]; const sc = A.scene(id); const base = sc.vessels.find(v => v.base); const st = { recipeBase: base ? base.base.col : null, dishImg: A.THUMB_IMG[id], kinds: kindsOf(id, seg) }; const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); drawScene(c, cv.width, t, seg, id, st); return segs.map(s => s.act + ':' + s.word); }
-  return { play, stop, segments, renderFrame };
+  function renderFrame(cv, id, text, si, t, stepIdx = 0, isLast = false) {
+    const segs = build(id, text, stepIdx, isLast), seg = segs[si % segs.length], st = stateFor(id, stepIdx); st.kinds = kindsOf(id, seg); withinOf(st, segs, si % segs.length); st.finalImg = finalImg(id, cv.width);
+    const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); drawScene(c, cv.width, t, seg, id, st); return segs.map(s => s.act + ':' + s.word);
+  }
+  return { play, stop, segments: segmentsOf, renderFrame };
 }

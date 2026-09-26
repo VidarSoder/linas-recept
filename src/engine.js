@@ -404,6 +404,12 @@ G.chorizo = (c, r, col) => { c.beginPath(); c.arc(0, 0, .5, 0, TAU); c.fillStyle
 G.mince = (c, r, col) => { for (let i = 0; i < 6; i++) { c.save(); c.translate((r() - .5) * .55, (r() - .5) * .55); blobPath(c, .13 + r() * .08, r, 6, .35); c.fillStyle = litFill(c, C.mix(col, C.dark(col, .3), r()), .2, .25, .35); c.fill(); c.restore(); } };
 G.crumble = (c, r, col) => { for (let i = 0; i < 5; i++) { c.save(); c.translate((r() - .5) * .5, (r() - .5) * .5); blobPath(c, .15 + r() * .1, r, 7, .3); c.fillStyle = litFill(c, C.mix(col, C.light(col, .2), r()), .25, .3, .25); c.fill(); c.restore(); } };
 G.pothalf = (c, r, col) => { c.beginPath(); c.ellipse(0, 0, .5, .4, 0, 0, TAU); c.fillStyle = '#b98a52'; c.fill(); c.beginPath(); c.ellipse(0, 0, .46, .36, 0, 0, TAU); c.fillStyle = litFill(c, col, .46, .3, .15); c.fill(); };
+G.saucetop = (c, r, col) => {
+  blobPath(c, .5, r, 13, .16); const g = c.createRadialGradient(-.08, -.1, .02, 0, 0, .55); g.addColorStop(0, C.light(col, .22)); g.addColorStop(.6, col); g.addColorStop(1, C.dark(col, .3)); c.fillStyle = g; c.fill();
+  c.save(); c.clip(); for (let i = 0; i < 26; i++) { const a = r() * TAU, d = Math.sqrt(r()) * .42; c.fillStyle = C.rgba(r() < .5 ? C.dark(col, .3) : C.light(col, .3), .35); c.beginPath(); c.ellipse(Math.cos(a) * d, Math.sin(a) * d, .03 + r() * .05, .02 + r() * .03, r() * 3, 0, TAU); c.fill(); } c.restore();
+  c.fillStyle = 'rgba(255,252,240,.35)'; c.beginPath(); c.ellipse(LX * .2, LY * .2, .16, .06, Math.atan2(LY, LX) + 1.57, 0, TAU); c.fill();
+  c.fillStyle = 'rgba(255,252,240,.2)'; c.beginPath(); c.ellipse(LX * .05, LY * .3, .06, .03, 0, 0, TAU); c.fill();
+};
 G.dab = (c, r, col) => { blobPath(c, .5, r, 9, .3); c.fillStyle = C.rgba(col, .88); c.fill(); glint(c, 0, 0, .45, .35); };
 G.ginger = (c, r, col) => G.shred(c, r, col, { n: 2, w: .05 });
 G.bacon = (c, r, col) => { rr(c, -.5, -.14, 1, .28, .06); c.fillStyle = col; c.fill(); c.fillStyle = 'rgba(245,215,190,.7)'; c.fillRect(-.5, -.03, 1, .06); };
@@ -420,8 +426,10 @@ G.nest = (c, r, col, v) => {
     strands.push(pts);
   }
   strands.sort((a, b) => Math.hypot(...b[18]) - Math.hypot(...a[18]));
+  const sg = c.createRadialGradient(0, 0, .1, 0, 0, .5); sg.addColorStop(0, 'rgba(30,15,5,.35)'); sg.addColorStop(1, 'rgba(30,15,5,0)'); c.fillStyle = sg; c.beginPath(); c.arc(0, 0, .5, 0, TAU); c.fill();
   for (const pts of strands) {
-    let cc = C.mix(col, C.light(col, .15), r()); if (v.coat) cc = C.mix(cc, v.coat, v.coatK || .3);
+    const crown = 1 - Math.min(1, Math.hypot(...pts[20]) / .45);
+    let cc = C.mix(col, C.light(col, .15), r()); if (v.coat) cc = C.mix(cc, v.coat, v.coatK || .3); cc = crown > .5 ? C.light(cc, (crown - .5) * .25) : C.dark(cc, (.5 - crown) * .22);
     strokeTrip(c, () => { c.beginPath(); c.moveTo(pts[0][0], pts[0][1]); for (let k = 1; k < pts.length; k++) c.lineTo(pts[k][0], pts[k][1]); }, w, cc, .5);
   }
 };
@@ -695,10 +703,10 @@ const K = {
   lentils: { g: 'lentil', col: '#df8a3e', n: 44, s: .02, L: 3, liq: ['#d9803a', 1.3], fam: 'Röda linser' },
   rice: { grp: 'ricepile', col: '#f6f0e0', s: .5, L: 1, fam: 'Ris' },
   yellowrice: { grp: 'ricepile', col: '#f0cf5a', s: .56, L: 1, fam: 'Ris' },
-  spaghetti: { grp: 'nest', col: '#eed395', s: .56, L: 1, v: { n: 72, w: .024 }, fam: 'Pasta' },
-  tagliatelle: { grp: 'nest', col: '#f0d493', s: .58, L: 1, v: { n: 30, w: .055 }, fam: 'Pasta' },
+  spaghetti: { grp: 'nest', col: '#eed395', s: .56, L: 1, v: { n: 124, w: .0165 }, fam: 'Pasta' },
+  tagliatelle: { grp: 'nest', col: '#f0d493', s: .58, L: 1, v: { n: 44, w: .044 }, fam: 'Pasta' },
   ramen: { grp: 'nest', col: '#efd48a', s: .5, L: 1, v: { n: 60, w: .018, wavy: .012 }, fam: 'Nudlar' },
-  udon: { grp: 'nest', col: '#f3e8cc', s: .56, L: 1, v: { n: 34, w: .048 }, fam: 'Nudlar' },
+  udon: { grp: 'nest', col: '#f3e8cc', s: .56, L: 1, v: { n: 48, w: .038 }, fam: 'Nudlar' },
   penne: { g: 'tube', col: '#eccd88', n: 26, s: .085, L: 1, fam: 'Pasta' },
   rigatoni: { g: 'rigatoni', col: '#ebca84', n: 24, s: .08, L: 1, fam: 'Pasta' },
   farfalle: { g: 'farfalle', col: '#efd28f', n: 22, s: .085, L: 1, fam: 'Pasta' },
@@ -773,8 +781,8 @@ const RULES = [
   [/vitlök/, 'garlic'], [/schalotten|scharlotten|steklök/, 'shallot'], [/rödlök/, 'redonion'], [/salladslök/, 'scallion'], [/purjo/, 'leek'], [/gräslök/, 'chive'], [/lök/, 'onion'],
   [/morot|morötter/, t => /riv/.test(t) ? 'carrotshred' : 'carrot'], [/rödbet/, 'beet'], [/selleri/, 'celery'], [/palsternacka/, 'parsnip'],
   [/färskpotatis/, 'newpotato'], [/potatis/, 'potato'],
-  [/tomatpuré|bbq-sås \(eller tomatpuré\)/, t => /bbq/.test(t) ? 'bbq' : 'tomatopaste'], [/soltorkade/, 'sundried'], [/körsbärstomat|småtomat/, 'cherry'],
-  [/bönor i tomatsås/, 'beansInTomato'], [/burk körsbärstomater/, 'cannedcherry'], [/krossade tomat|burktomat|hela tomater|konserverade tomater|tomat-pastas|pastasås/, 'canned'], [/tomat/, 'tomato'],
+  [/tomatpuré|bbq-sås \(eller tomatpuré\)/, t => /bbq/.test(t) ? 'bbq' : 'tomatopaste'], [/soltorkade/, 'sundried'], [/burk körsbärstomater/, 'cannedcherry'], [/körsbärstomat|småtomat/, 'cherry'],
+  [/bönor i tomatsås/, 'beansInTomato'], [/krossade tomat|burktomat|hela tomater|konserverade tomater|tomat-pastas|pastasås/, 'canned'], [/tomat/, 'tomato'],
   [/paprikapulver/, 'paprikap'], [/paprik/, t => /grön/.test(t) ? 'greenpepper' : /gul/.test(t) && !/röd/.test(t) ? 'yellowpepper' : 'redpepper'],
   [/sweet chili/, 'sweetchili'], [/chiliflakes|chilipulver|chilipeppar|sambal|sriracha|tabasco|chiliflakes/, 'chiliflakes'], [/chili/, 'chili'],
   [/curry/, 'curry'], [/gurkmeja/, 'turmeric'], [/kanel/, 'cinnamon'], [/spiskummin|kardemumma|kryddpeppar|muskot|dragon|vaniljpulver/, 'spice'],
@@ -892,6 +900,16 @@ V.saucepan = (c, s, rnd) => {
   c.beginPath(); c.arc(x, y, R * .92, 0, TAU); c.fillStyle = '#8d9295'; c.fill();
   ringShade(c, x, y, R * .92, R * .08, .45, .2);
   return { cx: x, cy: y, r: R * .86, deep: 1 };
+};
+V.boat = (c, s, rnd) => {
+  const { x, y, R } = s, gl = GLAZES[s.glaze];
+  c.save(); c.lineCap = 'round'; c.lineWidth = R * .13; c.strokeStyle = C.dark(gl.c, .12); c.beginPath(); c.arc(x - R * .98, y, R * .26, Math.PI * .45, Math.PI * 1.55); c.stroke(); c.restore();
+  const path = () => { c.beginPath(); c.moveTo(x + R * 1.02, y - R * .05); c.bezierCurveTo(x + R * .7, y - R * .5, x - R * .35, y - R * .72, x - R * .78, y - R * .4); c.bezierCurveTo(x - R * 1.02, y - R * .15, x - R * 1.02, y + R * .15, x - R * .78, y + R * .4); c.bezierCurveTo(x - R * .35, y + R * .72, x + R * .7, y + R * .5, x + R * 1.02, y + R * .05); c.closePath(); };
+  c.save(); c.shadowColor = 'rgba(5,6,8,.55)'; c.shadowBlur = c.getTransform().a * R * .12; c.shadowOffsetX = R * .06 * c.getTransform().a; c.shadowOffsetY = R * .1 * c.getTransform().a; path(); c.fillStyle = bodyFill(c, x, y, R, gl.c); c.fill(); c.restore();
+  path(); c.fillStyle = bodyFill(c, x, y, R, gl.c); c.fill();
+  speckle(c, x, y, R * .9, gl.sp, rnd, 70);
+  c.save(); c.translate(x - R * .05, y); c.scale(1.28, 1); c.beginPath(); c.arc(0, 0, R * .54, 0, TAU); c.restore(); c.fillStyle = C.dark(gl.c, .18); c.fill();
+  return { cx: x - R * .05, cy: y, r: R * .52, deep: 1 };
 };
 V.ramekin = (c, s, rnd) => {
   const { x, y, R } = s, gl = GLAZES[s.glaze];
@@ -1046,9 +1064,10 @@ function buildScene(rec, spec) {
       }
     }
     const hasNest = items.some(i => i.grp) && mode !== 'sectors'; const sectorsUsed = [], sectorQueue = [];
-    if (base && ((hasNest && vs.m === 'nest') || vs.dabs)) {   // sauce dabs over the pasta
+    if (base && ((hasNest && vs.m === 'nest') || vs.dabs)) {   // sauce dabs over the pasta, and a spoonful on top
       const n = Math.round(10 * aScale);
       place(items, a, rnd, n, { g: 'dab', col: base.col, s: .07, L: 1.5, ing: -2 }, 'center', .55, .03);
+      if (!vs.notop) items.push({ g: 'saucetop', col: base.col, s: (a.r || .27) * (C.lum(base.col) > .72 ? .55 : .8), L: 1.6, x: (a.cx || .5) + (rnd() - .5) * .02, y: (a.cy || .5) + (rnd() - .5) * .02, rot: rnd() * TAU, seed: Math.floor(rnd() * 1e9), ing: -2 });
     }
     for (const it of ings) {
       const k = K[it.k]; if (!k || !k.g || hide.has(it.k)) continue;
@@ -1061,7 +1080,8 @@ function buildScene(rec, spec) {
       if (mode === 'sectors' && L < 5 && !k.grp) { const si = sectorsUsed.indexOf(it.k) >= 0 ? sectorsUsed.indexOf(it.k) : sectorsUsed.push(it.k) - 1; const make = { g: k.g, col: k.col, v: k.v, s: k.s * (a.r / .275), L, ing: it.idx }; const nn = vs.counts && vs.counts[it.k] != null ? vs.counts[it.k] : Math.round(k.n * aScale * .8); sectorQueue.push([make, nn, si]); continue; }
       if (L >= 5) { pm = 'center'; spread = vs.garnishSpread || .7; }
       if (mode === 'fill' && L < 5) { pm = 'uniform'; }
-      if (hasNest && L >= 2 && L < 5) { pm = 'center'; spread = .7; }
+      if (hasNest && L >= 2 && L < 5) { pm = 'center'; spread = .52; }
+      if (hasNest && L >= 5) { spread = .45; }
       const make = { g: k.g, col: k.col, v: k.v, s: k.s * (vs.itemScale || 1) * (a.r ? Math.max(.75, Math.min(1.25, a.r / .275)) : 1), L, ing: it.idx };
       if (mode === 'fill' && L <= 3 && base) { make.subCol = base.col; }
       place(items, a, rnd, n, make, pm, spread, k.s * .8);
@@ -1079,6 +1099,7 @@ function buildScene(rec, spec) {
   });
   scene.items.sort((a, b) => a.L - b.L);
   scene.flat = all;
+  scene.dress = dressScene(scene, rec, spec);
   return scene;
 }
 /* a portion multiplier as more (or fewer) plates on the table */
@@ -1093,6 +1114,7 @@ function portionScene(sc, k) {
       const a = v.area, na = a.rect ? { ...a, rect: [tx(a.rect[0]), ty(a.rect[1]), a.rect[2] * s, a.rect[3] * s] } : { ...a, cx: tx(a.cx), cy: ty(a.cy), r: a.r * s };
       out.vessels.push({ ...v, x: tx(v.x), y: ty(v.y), R: v.R != null ? v.R * s : v.R, w: v.w != null ? v.w * s : v.w, h: v.h != null ? v.h * s : v.h, area: na, copy: ci });
     });
+    (sc.dress || []).forEach(d => { out.dress = out.dress || []; out.dress.push({ ...d, x: tx(d.x), y: ty(d.y), L: d.L && d.L * s, w: d.w && d.w * s, h: d.h && d.h * s, copy: ci }); });
     let items = sc.items; if (k < 1) items = items.filter((it, i) => it.grp || it.L >= 5 || i % 2 === 0);
     items.forEach(it => out.items.push({ ...it, x: tx(it.x), y: ty(it.y), s: it.s * s, copy: ci, rot: it.rot + ci * .7 }));
   });
@@ -1177,7 +1199,70 @@ function drawItem(c, it, S, sprite, opts = {}) {
   const w = size * sc; c.drawImage(spr, it.x * S - w / 2 + (opts.dx || 0), it.y * S - w / 2 + (opts.dy || 0), w, w);
   c.restore();
 }
+/* ---------- tableware: cutlery and linen, so each dish reads as served ---------- */
+function steel(c, w) { const g = c.createLinearGradient(0, -w, 0, w); g.addColorStop(0, '#80868b'); g.addColorStop(.35, '#f1f3f4'); g.addColorStop(.6, '#c3c8cb'); g.addColorStop(1, '#6f7579'); return g; }
+function wood(c, w) { const g = c.createLinearGradient(0, -w, 0, w); g.addColorStop(0, '#a8784a'); g.addColorStop(.4, '#d9ae7c'); g.addColorStop(1, '#8e6238'); return g; }
+const WARE = {
+  fork(c, L) { const w = L * .03; c.fillStyle = steel(c, w * 1.4); rr(c, -L / 2, -w, L * .6, w * 2, w); c.fill(); c.beginPath(); c.moveTo(L * .08, -w); c.quadraticCurveTo(L * .18, -w * .6, L * .22, -w * 2.6); c.lineTo(L * .22, w * 2.6); c.quadraticCurveTo(L * .18, w * .6, L * .08, w); c.fill();
+    for (let i = 0; i < 4; i++) { const yy = -w * 2.3 + i * w * 1.53; rr(c, L * .2, yy - w * .28, L * .3, w * .56, w * .28); c.fill(); } c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(-L * .45, -w * .35, L * .45, w * .25); },
+  knife(c, L) { const w = L * .032; c.fillStyle = steel(c, w * 1.5); rr(c, -L / 2, -w, L * .42, w * 2, w); c.fill(); c.beginPath(); c.moveTo(-L * .08, -w * 1.1); c.lineTo(L * .42, -w * 1.1); c.quadraticCurveTo(L * .52, -w * .2, L * .5, w * .4); c.quadraticCurveTo(L * .2, w * 1.2, -L * .08, w * 1.1); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(-L * .05, -w * .9, L * .45, w * .3); },
+  spoon(c, L, big) { const w = L * .03; c.fillStyle = steel(c, w * 1.5); rr(c, -L / 2, -w, L * .62, w * 2, w); c.fill(); c.beginPath(); c.ellipse(L * .3, 0, L * (big ? .2 : .16), L * (big ? .12 : .09), 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(40,44,48,.25)'; c.beginPath(); c.ellipse(L * .31, w * .4, L * (big ? .15 : .12), L * (big ? .085 : .062), 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.6)'; c.beginPath(); c.ellipse(L * .26, -L * .03, L * .06, L * .018, -.2, 0, TAU); c.fill(); },
+  ladle(c, L) { const w = L * .028; c.fillStyle = steel(c, w * 1.5); rr(c, -L / 2, -w, L * .7, w * 2, w); c.fill(); c.beginPath(); c.arc(L * .32, 0, L * .17, 0, TAU); c.fill(); c.fillStyle = 'rgba(40,44,48,.3)'; c.beginPath(); c.arc(L * .33, w * .5, L * .13, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.55)'; c.beginPath(); c.ellipse(L * .26, -L * .08, L * .06, L * .02, -.4, 0, TAU); c.fill(); },
+  spatula(c, L) { const w = L * .04; c.fillStyle = wood(c, w * 2.5); rr(c, -L / 2, -w, L * .62, w * 2, w); c.fill(); rr(c, L * .1, -w * 2.4, L * .4, w * 4.8, w * 1.6); c.fill(); c.strokeStyle = 'rgba(90,55,25,.3)'; c.lineWidth = w * .2; c.beginPath(); c.moveTo(-L * .45, 0); c.lineTo(L * .45, w * .3); c.stroke(); },
+  chopsticks(c, L) { [-1, 1].forEach(s => { c.save(); c.translate(0, s * L * .025); c.rotate(s * .03); c.beginPath(); c.moveTo(-L / 2, -L * .014); c.lineTo(L / 2, -L * .006); c.lineTo(L / 2, L * .006); c.lineTo(-L / 2, L * .014); c.closePath(); c.fillStyle = wood(c, L * .014); c.fill(); c.fillStyle = '#2b2b2e'; c.fillRect(-L / 2, -L * .014, L * .12, L * .028); c.restore(); }); },
+  server(c, L) { const w = L * .03; c.fillStyle = steel(c, w * 1.5); rr(c, -L / 2, -w, L * .5, w * 2, w); c.fill(); c.beginPath(); c.moveTo(0, -w * 2.2); c.lineTo(L * .5, -w * .6); c.quadraticCurveTo(L * .55, 0, L * .5, w * .6); c.lineTo(0, w * 2.2); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,255,255,.45)'; c.fillRect(L * .04, -w * 1.3, L * .38, w * .4); },
+  straw(c, L) { const w = L * .035; rr(c, -L / 2, -w, L, w * 2, w); c.fillStyle = '#f5f1ea'; c.fill(); c.save(); c.clip(); c.strokeStyle = '#d9573b'; c.lineWidth = w * 1.2; for (let x = -L / 2; x < L / 2; x += w * 3.2) { c.beginPath(); c.moveTo(x, -w * 1.5); c.lineTo(x + w * 2, w * 1.5); c.stroke(); } c.restore(); },
+  servers(c, L) { c.save(); c.translate(0, -L * .06); WARE.spatula(c, L); c.restore(); c.save(); c.translate(0, L * .07); const w = L * .04; c.fillStyle = wood(c, w * 2.5); rr(c, -L / 2, -w, L * .62, w * 2, w); c.fill(); for (let i = 0; i < 3; i++) { rr(c, L * .12, -w * 2.2 + i * w * 1.7, L * .38, w * 1.1, w * .5); c.fill(); } c.restore(); }
+};
+function drawWare(c, d) {
+  c.save(); c.translate(d.x, d.y); c.rotate(d.a);
+  const sc = c.getTransform(), px = Math.hypot(sc.a, sc.b);
+  c.shadowColor = 'rgba(10,8,6,.45)'; c.shadowBlur = px * .012; c.shadowOffsetX = px * .006; c.shadowOffsetY = px * .01;
+  WARE[d.kind](c, d.L, d.big); c.restore();
+}
+function drawNapkin(c, d) {
+  c.save(); c.translate(d.x, d.y); c.rotate(d.a);
+  c.shadowColor = 'rgba(5,6,8,.4)'; c.shadowBlur = c.getTransform().a * .015; c.shadowOffsetY = c.getTransform().a * .006;
+  rr(c, -d.w / 2, -d.h / 2, d.w, d.h, .012); c.fillStyle = d.col; c.fill(); c.shadowColor = 'transparent';
+  c.save(); c.clip(); c.fillStyle = C.rgba(d.stripe, .85);
+  if (d.check) { for (let x = -d.w / 2; x < d.w / 2; x += .05) c.fillRect(x, -d.h / 2, .018, d.h); c.globalAlpha = .6; for (let y = -d.h / 2; y < d.h / 2; y += .05) c.fillRect(-d.w / 2, y, d.w, .018); }
+  else { [-.34, -.3, .3, .34].forEach(f => c.fillRect(-d.w / 2, d.h * f, d.w, .012)); }
+  const g = c.createLinearGradient(-d.w / 2, 0, d.w / 2, 0); g.addColorStop(0, 'rgba(0,0,0,.06)'); g.addColorStop(.5, 'rgba(255,255,255,.08)'); g.addColorStop(.52, 'rgba(0,0,0,.08)'); g.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g; c.fillRect(-d.w / 2, -d.h / 2, d.w, d.h);
+  c.restore(); c.restore();
+}
+function dressScene(scene, rec, spec) {
+  const v = scene.vessels[0]; if (!v || spec.nodress) return [];
+  const r = mulberry(strHash(rec.id + 'dress')), out = [], id = rec.id, many = scene.vessels.length > 1;
+  const onRim = (kind, ang, L, tilt = .35, big) => { const R = (v.R || .4) * (v.type === 'plate' ? .88 : v.type === 'bowl' ? .95 : 1.02); out.push({ kind, x: v.x + Math.cos(ang) * R, y: v.y + Math.sin(ang) * R, a: ang + Math.PI / 2 + tilt, L, big }); };
+  const inside = (kind, ang, L, big) => { const R = (v.R || .4) * .42; out.push({ kind, x: v.x + Math.cos(ang) * R, y: v.y + Math.sin(ang) * R, a: ang, L, big }); };
+  const napkin = () => { const nap = [['#ece6d8', '#3f6a9a'], ['#f1ece2', '#c0453a'], ['#e7e0cf', '#6f8f5a'], ['#efe9dc', '#c0453a']][Math.floor(r() * 4)]; out.unshift({ napkin: 1, x: v.x - .2 + r() * .06, y: v.y + .22 + r() * .05, a: -.35 + r() * .2, w: .52, h: .36, col: nap[0], stripe: nap[1], check: r() < .35 }); };
+  const t = v.type, m = META_HINT(id);
+  if (many) return out;
+  if (t === 'plate') {
+    if (m.cake) onRim('server', Math.PI * .28, .36, .2);
+    else if (m.patty) { onRim('knife', Math.PI * .12, .38, .08); onRim('fork', Math.PI * .38, .38, .08); }
+    else onRim('fork', Math.PI * .27, .4, .32);
+    napkin();
+  } else if (t === 'bowl') {
+    if (id === 'ramen') onRim('chopsticks', -Math.PI * .22, .56, -1.35);
+    else if (m.salad) onRim('servers', Math.PI * .25, .42, .15);
+    else onRim('spoon', Math.PI * .26, .4, .45, 1);
+    napkin();
+  } else if (t === 'pot') inside('ladle', -Math.PI * .28, .5, 1);
+  else if (t === 'skillet') inside('spatula', -Math.PI * .3, .46);
+  else if (t === 'boat') out.push({ kind: 'spoon', x: v.x - .02, y: v.y + .04, a: -.5, L: .3 });
+  else if (t === 'ramekin') onRim('spoon', Math.PI * .3, .28, .5);
+  else if (t === 'jar') onRim('spoon', Math.PI * .3, .36, .5);
+  else if (t === 'glass') out.push({ kind: 'straw', x: v.x + .05, y: v.y - .02, a: -.8, L: .42 });
+  else if (t === 'board') out.push({ kind: 'knife', x: v.x + (v.w || .8) * .32, y: v.y + (v.h || .6) * .2, a: -1.35, L: .32 });
+  else if (t === 'tray') out.push({ kind: 'spatula', x: v.x + (v.w || .8) * .36, y: v.y + (v.h || .6) * .28, a: -2.2, L: .3 });
+  else if (t === 'ovendish') out.push({ kind: 'spoon', x: v.x + .12, y: v.y + .05, a: -.5, L: .34, big: 1 });
+  else if (t === 'piedish') onRim('server', Math.PI * .3, .36, .25);
+  return out;
+}
+const META_HINT = id => ({ cake: ['sockerkaka', 'kladdkaka'].includes(id), patty: ['pannbiff', 'fattiga-riddare'].includes(id), salad: ['kalsallad', 'farskpotatissallad', 'gurk-tomatsallad', 'pastasallad', 'bonblandning'].includes(id) });
 function renderUnder(scene, S, c) {
+  c.save(); c.scale(S, S); (scene.dress || []).forEach(d => d.napkin && drawNapkin(c, d)); c.restore();
   c.save(); c.scale(S, S);
   scene.vessels.forEach((v, i) => { const r = mulberry(strHash(scene.id + i)); V[v.type](c, v, r); });
   c.restore();
@@ -1197,10 +1282,11 @@ function renderOver(scene, S, c) {
   });
   c.restore();
   c.save(); c.globalCompositeOperation = 'overlay'; c.globalAlpha = .07; c.fillStyle = grainPattern(c);
-  scene.vessels.forEach(v => { c.save(); c.beginPath(); if (v.w) c.rect((v.x - v.w / 2) * S, (v.y - v.h / 2) * S, v.w * S, v.h * S); else if (v.R) c.arc(v.x * S, v.y * S, v.R * S, 0, TAU); c.clip(); c.fillRect(0, 0, S, S); c.restore(); });
+  scene.vessels.forEach(v => { if (v.type === 'boat') return; c.save(); c.beginPath(); if (v.w) c.rect((v.x - v.w / 2) * S, (v.y - v.h / 2) * S, v.w * S, v.h * S); else if (v.R) c.arc(v.x * S, v.y * S, v.R * S, 0, TAU); c.clip(); c.fillRect(0, 0, S, S); c.restore(); });
   c.restore();
   c.save(); c.scale(S, S);
   scene.vessels.forEach(v => { if (v.area.glass) glassOver(c, v); else if (!v.area.rect) innerShadow(c, v.area); });
+  (scene.dress || []).forEach(d => !d.napkin && drawWare(c, d));
   c.restore();
 }
 function renderScene(scene, S, cv) {
