@@ -279,6 +279,88 @@ main { padding-inline: var(--gut); padding-block: 8px 80px; }
 .spin-ui .row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 #spin .x { top: 18px; right: 18px; border-color: var(--line-2); }
 
+/* ---------- kitchen ---------- */
+#kitchen { z-index: 55; background: #14181a; overflow: hidden; }
+#kitchen canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.kh { position: absolute; left: var(--gut); top: 18px; max-width: min(460px, calc(100% - 110px)); pointer-events: none; transition: opacity .4s; }
+.kh h2 { margin: 0; font-family: var(--display); font-weight: 400; font-size: clamp(34px, 4vw, 56px); line-height: 1; text-shadow: 0 4px 24px rgba(0, 0, 0, .6); }
+.kh p { margin: 8px 0 0; font-size: 16px; line-height: 1.4; color: var(--ink-2); text-shadow: 0 2px 12px rgba(0, 0, 0, .8); }
+#kitchen.focused .kh { opacity: 0; }
+#kitchen .kx { top: 18px; right: 18px; border-color: var(--line-2); background: rgba(20, 24, 27, .7); }
+.kzones { position: absolute; left: var(--gut); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-wrap: wrap; gap: 8px; max-width: calc(100% - 2 * var(--gut) - 110px); }
+.kzones .btn, .kzoom .btn { background: rgba(20, 24, 27, .78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); padding: .6em .95em; }
+.kzones .btn i { width: 9px; height: 9px; border-radius: 3px; }
+.kzoom { position: absolute; right: 18px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; gap: 8px; }
+.kzoom .btn { width: 44px; height: 44px; justify-content: center; font-size: 20px; padding: 0; }
+#kitchen.focused .kzones { opacity: .0; pointer-events: none; }
+.ktip { position: absolute; z-index: 3; pointer-events: none; padding: .45em .75em; border-radius: 10px; background: rgba(20, 24, 27, .92); border: 1px solid var(--line-2); font-size: 16px; line-height: 1.3; transform: translate(-50%, calc(-100% - 18px)); opacity: 0; transition: opacity .15s; max-width: 280px; }
+.ktip.on { opacity: 1; }
+.ktip b { display: block; font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.kpanel { position: absolute; z-index: 4; top: 14px; right: 14px; bottom: 14px; width: min(430px, 36vw); display: flex; flex-direction: column; background: var(--paper); color: var(--paper-ink); border-radius: 22px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); overflow: hidden; }
+.kpanel:not([hidden]) { animation: kpIn .55s var(--ease) both; }
+@keyframes kpIn { from { transform: translateX(30px); opacity: 0; } }
+.kpanel .x { top: 16px; right: 16px; border-color: var(--paper-line); }
+.kp-body { flex: 1; overflow-y: auto; padding: 24px 26px 8px; }
+.kp-body h2 { font-family: var(--display); font-weight: 400; font-size: clamp(28px, 2.6vw, 40px); line-height: 1.03; margin: 16px 44px 6px 0; text-wrap: balance; }
+.kp-meta { margin: 0; font-style: italic; color: var(--paper-muted); font-size: 16px; }
+.kp-facts { display: flex; gap: 22px; margin: 18px 0 12px; padding: 12px 0; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); font-family: var(--mono); font-size: 12px; color: var(--paper-muted); }
+.kp-facts b { display: block; font-family: var(--display); font-weight: 400; font-size: 30px; color: var(--c); line-height: 1.05; }
+.kp-ings { list-style: none; margin: 0; padding: 0; }
+.kp-ings li { display: grid; grid-template-columns: 30px 5.6em 1fr; gap: 8px; align-items: center; padding: 4px 0; font-size: 16px; line-height: 1.25; }
+.kp-ings li img { width: 30px; height: 30px; }
+.kp-ings li i { width: 8px; height: 8px; border-radius: 50%; background: var(--paper-line); justify-self: center; }
+.kp-ings .q { font-family: var(--mono); font-size: 12.5px; }
+.kp-more { margin: 6px 0 0; font-family: var(--mono); font-size: 12px; color: var(--paper-muted); }
+.kp-btns { display: flex; gap: 10px; padding: 14px 26px; border-top: 1px solid var(--paper-line); }
+.kp-btns .btn { flex: 1; justify-content: center; color: var(--paper-ink); border-color: var(--paper-line); }
+.kp-btns .btn.solid { background: var(--paper-ink); color: var(--paper); border-color: var(--paper-ink); }
+.kp-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 16px 16px; }
+.kp-nav button { text-align: left; padding: 8px 10px; border-radius: 12px; min-width: 0; }
+.kp-nav button:last-child { text-align: right; }
+.kp-nav button:hover { background: rgba(0, 0, 0, .05); }
+.kp-nav small { display: block; font-family: var(--mono); font-size: 11px; color: var(--paper-muted); letter-spacing: .04em; }
+.kp-nav span { display: block; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 899px) {
+  .kpanel { top: auto; left: 10px; right: 10px; bottom: 10px; width: auto; max-height: 52vh; }
+  .kpanel:not([hidden]) { animation-name: kpUp; }
+  @keyframes kpUp { from { transform: translateY(40px); opacity: 0; } }
+  .kh p { display: none; }
+  .kzones { max-width: calc(100% - 2 * var(--gut)); bottom: calc(74px + env(safe-area-inset-bottom, 0px)); }
+  .kzones .btn:not([data-z="all"]) { display: none; }
+}
+.tab-k b { font-size: 18px; }
+
+/* ---------- the chef ---------- */
+.k-mascot { margin-top: 6px; }
+.mascot { position: relative; display: grid; grid-template-columns: minmax(150px, 230px) minmax(0, 1fr); gap: 8px 28px; align-items: center; }
+.m-stage { position: relative; }
+.m-svg { width: 100%; height: auto; overflow: visible; animation: mIn .9s cubic-bezier(.3, 1.55, .5, 1) both; }
+@keyframes mIn { from { transform: translateY(70%) scale(.5); opacity: 0; } 60% { opacity: 1; } }
+.m-all { transform-origin: 120px 262px; animation: mBob 1.5s ease-in-out .9s infinite; }
+@keyframes mBob { 0%, 100% { transform: translateY(0) scaleY(1); } 50% { transform: translateY(-7px) scaleY(1.02); } }
+.m-thumb { transform-origin: 178px 150px; animation: mThumb .7s cubic-bezier(.3, 1.8, .5, 1) .55s both, mPump 1.1s ease-in-out 1.4s infinite; }
+@keyframes mThumb { from { transform: rotate(80deg) scale(.6); } }
+@keyframes mPump { 0%, 100% { transform: rotate(0); } 45% { transform: rotate(-12deg) translateY(-4px); } }
+.m-wave { transform-origin: 64px 150px; animation: mWave .45s ease-in-out .7s 6 alternate; }
+@keyframes mWave { from { transform: rotate(0); } to { transform: rotate(-22deg); } }
+.m-hat { transform-origin: 120px 80px; animation: mHat 2.6s ease-in-out 1s infinite; }
+@keyframes mHat { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-5deg); } 60% { transform: rotate(4deg); } }
+.m-eyes { transform-origin: 120px 130px; animation: mBlink 3.6s 1.2s infinite; }
+@keyframes mBlink { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(.1); } }
+.m-talk { display: none; }
+.mascot.talking .m-talk { display: inline; animation: mTalk .16s ease-in-out infinite alternate; transform-origin: 120px 152px; }
+.mascot.talking .m-smile { display: none; }
+@keyframes mTalk { from { transform: scaleY(.45); } to { transform: scaleY(1); } }
+.m-bubble { position: relative; background: var(--ink); color: #1c2225; border-radius: 26px; padding: 22px 26px; max-width: 34rem; animation: bIn .6s cubic-bezier(.3, 1.6, .5, 1) .8s both; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); }
+.m-bubble::before { content: ''; position: absolute; left: -14px; top: 46%; border: 14px solid transparent; border-right-color: var(--ink); border-left: 0; }
+@keyframes bIn { from { transform: scale(.4) translateX(-40px); opacity: 0; } }
+.m-hi { margin: 0; font-family: var(--display); font-size: clamp(34px, 4vw, 56px); line-height: 1; color: #1c2225; }
+.m-quip { margin: 12px 0 0; font-size: clamp(19px, 1.9vw, 25px); line-height: 1.35; min-height: 2.7em; }
+.m-confetti { position: absolute; inset: -40vh -10vw 0; pointer-events: none; overflow: visible; }
+.m-confetti img { position: absolute; left: var(--x); top: 0; width: var(--s); height: var(--s); opacity: 0; animation: conf var(--d) cubic-bezier(.25, .6, .4, 1) var(--delay) both; }
+@keyframes conf { 0% { transform: translate(0, -40px) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(var(--dx), 110vh) rotate(var(--r)); opacity: .9; } }
+@media (max-width: 640px) { .mascot { grid-template-columns: 1fr; justify-items: center; text-align: center; } .m-stage { width: 170px; } .m-bubble::before { left: 50%; top: -14px; border: 14px solid transparent; border-bottom-color: var(--ink); border-top: 0; transform: translateX(-50%); } }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
@@ -293,6 +375,7 @@ main { padding-inline: var(--gut); padding-block: 8px 80px; }
     <p class="lede">Varje tallrik i boken är <em>ritad av receptets egna ingredienser</em>. Öppna ett recept och se maten landa, håll över tallriken för att se vad den består av.</p>
     <div class="hero-actions">
       <a class="btn solid" href="#flik-1">Öppna boken</a>
+      <button class="btn" type="button" data-act="kitchen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>Gå in i köket</button>
       <button class="btn" type="button" data-act="spin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/></svg>Snurra fatet</button>
       <button class="btn" type="button" data-act="pantry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 10h14M9 6.5v1M9 13v3"/></svg>Vad har du hemma?</button>
       <button class="btn" type="button" data-act="show"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>Visningsläge</button>
@@ -308,6 +391,7 @@ main { padding-inline: var(--gut); padding-block: 8px 80px; }
     <input id="q" type="search" placeholder="Sök recept eller ingrediens" autocomplete="off">
   </label>
   <div class="bar-tools">
+    <button class="btn" type="button" data-act="kitchen" title="Köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Köket</span></button>
     <button class="btn" type="button" data-act="pantry" title="Vad har du hemma?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 10h14M9 6.5v1M9 13v3"/></svg><span class="lbl">Hemma</span></button>
     <button class="btn" type="button" data-act="spin" title="Snurra fatet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/></svg><span class="lbl">Snurra</span></button>
     <button class="btn" type="button" id="soundBtn" aria-pressed="false" title="Ljud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span class="lbl">Ljud</span></button>
@@ -347,6 +431,21 @@ main { padding-inline: var(--gut); padding-block: 8px 80px; }
   <header class="k-head"><span class="k-title" id="kTitle"></span><div class="k-prog" id="kProg"></div><button class="x" type="button" data-close aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
   <section class="k-main" id="kMain" aria-live="polite"></section>
   <footer class="k-foot"><button class="btn" type="button" id="kPrev">← Föregående</button><button class="btn next" type="button" id="kNext">Nästa →</button></footer>
+</div>
+
+<div class="overlay kitchen" id="kitchen" hidden role="dialog" aria-modal="true" aria-labelledby="kHead">
+  <canvas id="kCanvas"></canvas>
+  <header class="kh"><h2 id="kHead">Köket</h2><p>Alla rätter står framme. Klicka på en rätt för att gå närmare, dra för att flytta dig och scrolla eller nyp för att zooma. Katterna bor här.</p></header>
+  <button class="x kx" type="button" data-close aria-label="Stäng köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="kzones" id="kZones"></div>
+  <div class="kzoom"><button class="btn" type="button" id="kZoomIn" aria-label="Zooma in">+</button><button class="btn" type="button" id="kZoomOut" aria-label="Zooma ut">−</button></div>
+  <div class="ktip" id="kTip"></div>
+  <aside class="kpanel" id="kPanel" hidden>
+    <button class="x" type="button" data-kback aria-label="Tillbaka till köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="kp-body"></div>
+    <div class="kp-btns"><button class="btn solid" type="button" id="kpOpen">Öppna receptet</button><button class="btn" type="button" id="kpCook">Börja laga</button></div>
+    <div class="kp-nav"><button type="button" id="kpPrev"><small>← Förra rätten</small><span></span></button><button type="button" id="kpNext"><small>Nästa rätt →</small><span></span></button></div>
+  </aside>
 </div>
 
 <div class="timers" id="timers"></div>
@@ -1579,6 +1678,598 @@ const VIS = {
   'islatte': { v: 'glass', R: .3, bs: 'broth', base: '#b98a5c', counts: { ice: 5 } }
 };
 
+/* ==========================================================================
+   Köket — the whole book standing in a real kitchen, seen from above.
+   Three cats live here.
+   ========================================================================== */
+function initKitchen(A) {
+  const W = 3000, H = 2000, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const ov = document.getElementById('kitchen'), cv = document.getElementById('kCanvas'), ctx = cv.getContext('2d');
+  const tipEl = document.getElementById('kTip'), panel = document.getElementById('kPanel');
+  const DPR = A.DPR, COARSE = matchMedia('(pointer: coarse)').matches;
+  const rnd = mulberry(2024);
+  const chap = n => A.CHAPTERS.find(c => c.n === n);
+  const sec = (n, name) => chap(n).sections.find(s => s[0] === name)[1];
+
+  /* ---------------- layout ---------------- */
+  const SOLID = [
+    { x: 90, y: 50, w: 700, h: 360, name: 'range' },
+    { x: 790, y: 50, w: 2160, h: 290, name: 'counter' },
+    { x: 420, y: 620, w: 1300, h: 440, name: 'island' },
+    { x: 50, y: 470, w: 200, h: 250, name: 'fridge' }
+  ];
+  const TABLE = { x: 1900, y: 560, w: 1000, h: 690 }, DINING = { cx: 760, cy: 1480, r: 330 };
+  const DISH = [];
+  const add = (id, x, y, s, zone) => DISH.push({ id, x, y, s, zone });
+  sec(2, 'Grytor').forEach((id, i) => add(id, 185 + (i % 4) * 170, i < 4 ? 150 : 320, 190, 'Spisen'));
+  [...sec(2, 'Soppor'), ...sec(2, 'Ugn, panna & ris')].forEach((id, i) => add(id, 862 + (i % 8) * 142, i < 8 ? 124 : 266, 152, 'Bänken'));
+  const ch1 = chap(1).sections.flatMap(s => s[1]);
+  ch1.forEach((id, i) => add(id, 488 + (i % 10) * 128, i < 10 ? 735 : 945, 138, 'Köksön'));
+  const ch3 = chap(3).sections.flatMap(s => s[1]);
+  ch3.forEach((id, i) => add(id, 1972 + (i % 7) * 142, 648 + Math.floor(i / 7) * 164, 134, 'Skafferibordet'));
+  const drinks = sec(4, 'Drycker'); [[2690, 128], [2850, 128], [2770, 262]].forEach((p, i) => add(drinks[i], p[0], p[1], 126, 'Kaffehörnan'));
+  const ch4 = chap(4).sections.filter(s => s[0] !== 'Drycker').flatMap(s => s[1]);
+  ch4.forEach((id, i) => { const inner = i < 5, n = inner ? 5 : ch4.length - 5, k = inner ? i : i - 5, a = -Math.PI / 2 + (k / n) * Math.PI * 2 + (inner ? .6 : 0), r = inner ? 118 : 245; add(id, DINING.cx + Math.cos(a) * r, DINING.cy + Math.sin(a) * r, 122, 'Matbordet'); });
+  const byId = Object.fromEntries(DISH.map(d => [d.id, d]));
+  const ZONES = [
+    { name: 'Spisen', sub: 'Flik 2 · Grytor', n: 2, cam: [440, 230, 1.5], sign: [440, 452] },
+    { name: 'Bänken', sub: 'Flik 2 · Soppor & ugnsrätter', n: 2, cam: [1360, 200, 1.35], sign: [1360, 380] },
+    { name: 'Köksön', sub: 'Flik 1 · Pasta & nudlar', n: 1, cam: [1070, 840, 1.2], sign: [1070, 1108] },
+    { name: 'Skafferibordet', sub: 'Flik 3 · Såser, röror & tillbehör', n: 3, cam: [2400, 905, 1.05], sign: [2400, 1300] },
+    { name: 'Matbordet', sub: 'Flik 4 · Frukost, bakat & sött', n: 4, cam: [760, 1480, 1.2], sign: [760, 1872] },
+    { name: 'Kaffehörnan', sub: 'Flik 4 · Drycker', n: 4, cam: [2690, 190, 2], sign: [2690, 380] }
+  ];
+  const STEAMY = new Set([...sec(2, 'Grytor'), ...sec(2, 'Soppor'), 'varm-choklad', 'ramen']);
+
+  /* ---------------- static scene ---------------- */
+  let STATIC = null, LIGHT = null, Q = 1;
+  function mk(w, h) { const c = document.createElement('canvas'); c.width = Math.ceil(w); c.height = Math.ceil(h); return c; }
+  function planks() {
+    const T = mk(1200, 840), c = T.getContext('2d'), r = mulberry(5);
+    const cols = ['#b38658', '#a97c50', '#bd9164', '#a57549', '#b88b5d'];
+    for (let row = 0; row < 7; row++) {
+      let x = -r() * 600; const y = row * 120;
+      while (x < 1200) {
+        const len = 380 + r() * 560, col = cols[Math.floor(r() * cols.length)];
+        for (const dx of [0, 1200]) {
+          const g = c.createLinearGradient(0, y, 0, y + 120); g.addColorStop(0, C.light(col, .06)); g.addColorStop(1, C.dark(col, .06));
+          c.fillStyle = g; c.fillRect(x - dx, y, len, 120);
+          c.strokeStyle = C.rgba(C.dark(col, .35), .22); c.lineWidth = 1.2;
+          for (let k = 0; k < 7; k++) { const gy = y + 10 + r() * 100; c.beginPath(); c.moveTo(x - dx, gy); for (let q = 0; q <= 8; q++) c.lineTo(x - dx + q * len / 8, gy + Math.sin(q * 1.3 + k) * 2.5); c.stroke(); }
+          if (r() < .5) { const kx = x - dx + r() * len, ky = y + 30 + r() * 60; c.strokeStyle = C.rgba(C.dark(col, .4), .35); c.beginPath(); c.ellipse(kx, ky, 14, 6, 0, 0, TAU); c.stroke(); }
+          c.fillStyle = 'rgba(40,24,12,.55)'; c.fillRect(x - dx + len - 2, y, 3, 120);
+        }
+        x += len;
+      }
+      c.fillStyle = 'rgba(40,24,12,.5)'; c.fillRect(0, y + 118, 1200, 3);
+    }
+    return T;
+  }
+  function terrazzo(w, h) {
+    const T = mk(w, h), c = T.getContext('2d'), r = mulberry(9);
+    c.fillStyle = '#e7e1d5'; c.fillRect(0, 0, w, h);
+    const chips = ['#c9bfae', '#a89b88', '#d9cfbf', '#8f8474', '#e8b9a0', '#9fb3a6'];
+    for (let i = 0; i < w * h / 180; i++) { c.fillStyle = chips[Math.floor(r() * chips.length)]; c.globalAlpha = .45 + r() * .5; const s = 1.5 + r() * 5; c.beginPath(); c.ellipse(r() * w, r() * h, s, s * (.5 + r() * .5), r() * 3, 0, TAU); c.fill(); }
+    c.globalAlpha = 1; return T;
+  }
+  function woodTop(w, h, base, dir = 'v', strip = 60, seed = 3) {
+    const T = mk(w, h), c = T.getContext('2d'), r = mulberry(seed);
+    const n = Math.ceil((dir === 'v' ? w : h) / strip);
+    for (let i = 0; i < n; i++) {
+      const col = C.mix(base, r() < .5 ? C.light(base, .12) : C.dark(base, .12), r());
+      c.fillStyle = col; dir === 'v' ? c.fillRect(i * strip, 0, strip, h) : c.fillRect(0, i * strip, w, strip);
+      c.strokeStyle = C.rgba(C.dark(base, .45), .18); c.lineWidth = 1;
+      for (let k = 0; k < 5; k++) { const o = i * strip + 6 + r() * (strip - 12); c.beginPath(); if (dir === 'v') { c.moveTo(o, 0); for (let q = 0; q <= 10; q++) c.lineTo(o + Math.sin(q + k * 2) * 2, q * h / 10); } else { c.moveTo(0, o); for (let q = 0; q <= 10; q++) c.lineTo(q * w / 10, o + Math.sin(q + k * 2) * 2); } c.stroke(); }
+      c.fillStyle = C.rgba(C.dark(base, .5), .35); dir === 'v' ? c.fillRect(i * strip, 0, 1.5, h) : c.fillRect(0, i * strip, w, 1.5);
+    }
+    return T;
+  }
+  function softShadow(c, draw, blur = 30, dx = 14, dy = 22, a = .45) { c.save(); c.shadowColor = `rgba(10,6,3,${a})`; c.shadowBlur = blur; c.shadowOffsetX = dx; c.shadowOffsetY = dy; draw(); c.restore(); }
+  function roundRect(c, x, y, w, h, r) { rr(c, x, y, w, h, r); }
+  function buildStatic() {
+    Q = COARSE ? 1 : 1.4;
+    const S = mk(W * Q, H * Q), c = S.getContext('2d'); c.scale(Q, Q);
+    // outer shadow of the room
+    softShadow(c, () => { c.fillStyle = '#2d2723'; c.fillRect(0, 0, W, H); }, 80, 0, 30, .6);
+    // floor
+    const pat = c.createPattern(planks(), 'repeat'); c.fillStyle = pat; c.fillRect(50, 50, W - 100, H - 100);
+    // rugs: braided round rug under the dining table, rag rug by the sink
+    c.save(); c.translate(DINING.cx, DINING.cy);
+    for (let i = 0; i < 26; i++) { const rad = 470 - i * 17; c.beginPath(); c.arc(0, 0, rad, 0, TAU); c.fillStyle = ['#c9b79c', '#b0896a', '#d8cbb2', '#8e6f57', '#c6a98a'][i % 5]; c.fill(); c.strokeStyle = 'rgba(60,40,25,.25)'; c.lineWidth = 2; c.stroke(); }
+    c.restore();
+    const rag = { x: 1880, y: 385, w: 640, h: 140 }, rr_ = mulberry(12);
+    softShadow(c, () => { c.fillStyle = '#ddd'; c.fillRect(rag.x, rag.y, rag.w, rag.h); }, 10, 3, 5, .3);
+    let yy = rag.y; const ragC = ['#c85a45', '#e8dcc6', '#5d7fa3', '#e6b451', '#e8dcc6', '#7aa06a', '#d98a7a', '#e8dcc6'];
+    while (yy < rag.y + rag.h) { const hh = 6 + rr_() * 14; c.fillStyle = ragC[Math.floor(rr_() * ragC.length)]; c.fillRect(rag.x, yy, rag.w, Math.min(hh, rag.y + rag.h - yy)); for (let k = 0; k < 40; k++) { c.fillStyle = 'rgba(255,255,255,.12)'; c.fillRect(rag.x + rr_() * rag.w, yy + rr_() * hh, 8, 1.5); } yy += hh; }
+    c.fillStyle = '#e8dcc6'; for (let x = rag.x; x < rag.x + rag.w; x += 9) { c.fillRect(x, rag.y - 12, 3, 12); c.fillRect(x, rag.y + rag.h, 3, 12); }
+    // walls
+    c.fillStyle = '#2f2924'; c.fillRect(0, 0, W, 50); c.fillRect(0, H - 50, W, 50); c.fillRect(0, 0, 50, H); c.fillRect(W - 50, 0, 50, H);
+    c.fillStyle = 'rgba(255,240,220,.06)'; c.fillRect(50, 50, W - 100, 3); c.fillRect(50, 50, 3, H - 100);
+    // windows
+    const win = (x, y, w, h) => { c.fillStyle = '#e9e3d6'; c.fillRect(x, y, w, h); c.fillStyle = '#b9d3dc'; c.fillRect(x + 6, y + 12, w - 12, h - 24); c.fillStyle = 'rgba(255,255,255,.55)'; c.fillRect(x + 6, y + 12, w - 12, 5); c.fillStyle = '#e9e3d6'; if (w > h) c.fillRect(x + w / 2 - 4, y, 8, h); else c.fillRect(x, y + h / 2 - 4, w, 8); };
+    win(1990, 0, 400, 50); win(0, 1260, 50, 400);
+    // door
+    c.fillStyle = pat; c.fillRect(2140, H - 50, 260, 50); c.fillStyle = '#8c6a4c'; c.fillRect(2140, H - 52, 260, 8);
+    c.strokeStyle = 'rgba(40,30,22,.45)'; c.setLineDash([8, 8]); c.lineWidth = 2; c.beginPath(); c.arc(2400, H - 50, 260, Math.PI, Math.PI * 1.5); c.stroke(); c.setLineDash([]);
+    c.fillStyle = '#6e5440'; c.fillRect(2396, H - 310, 8, 260);
+    // top counter with backsplash
+    softShadow(c, () => { c.fillStyle = '#ddd'; c.fillRect(790, 50, 2160, 290); }, 26, 8, 16, .5);
+    c.drawImage(terrazzo(2160, 290), 790, 50);
+    c.fillStyle = '#f3efe7'; c.fillRect(790, 50, 2160, 18); c.strokeStyle = 'rgba(120,110,95,.35)'; c.lineWidth = 1; for (let x = 790; x < 2950; x += 36) { c.beginPath(); c.moveTo(x, 50); c.lineTo(x, 68); c.stroke(); }
+    c.fillStyle = 'rgba(0,0,0,.18)'; c.fillRect(790, 334, 2160, 6);
+    // sink
+    [[2010, 90, 170, 200], [2200, 90, 170, 200]].forEach(([x, y, w, h]) => { rr(c, x, y, w, h, 22); const g = c.createLinearGradient(x, y, x + w, y + h); g.addColorStop(0, '#8b9195'); g.addColorStop(1, '#c9cdcf'); c.fillStyle = g; c.fill(); rr(c, x + 10, y + 10, w - 20, h - 20, 16); c.fillStyle = '#b3b8bb'; c.fill(); c.beginPath(); c.arc(x + w / 2, y + h / 2 + 20, 12, 0, TAU); c.fillStyle = '#6d7275'; c.fill(); });
+    c.lineCap = 'round'; c.strokeStyle = '#c7cbcd'; c.lineWidth = 14; c.beginPath(); c.moveTo(2190, 62); c.quadraticCurveTo(2190, 120, 2190, 150); c.stroke(); c.lineWidth = 5; c.strokeStyle = 'rgba(255,255,255,.7)'; c.beginPath(); c.moveTo(2186, 66); c.lineTo(2186, 145); c.stroke();
+    // espresso machine
+    softShadow(c, () => { rr(c, 2440, 70, 170, 150, 14); c.fillStyle = '#2b2c2f'; c.fill(); }, 16, 5, 9, .5);
+    rr(c, 2455, 85, 140, 60, 8); c.fillStyle = '#bfc3c6'; c.fill(); for (let i = 0; i < 5; i++) { c.fillStyle = '#8d9296'; c.fillRect(2465 + i * 26, 92, 14, 46); }
+    [2480, 2525, 2570].forEach(x => { c.beginPath(); c.arc(x, 180, 12, 0, TAU); c.fillStyle = '#d9a257'; c.fill(); });
+    // range
+    softShadow(c, () => { c.fillStyle = '#222'; c.fillRect(90, 50, 700, 360); }, 26, 8, 16, .55);
+    let g = c.createLinearGradient(90, 50, 790, 410); g.addColorStop(0, '#d7dadc'); g.addColorStop(.5, '#aeb3b6'); g.addColorStop(1, '#8e9397'); c.fillStyle = g; c.fillRect(90, 50, 700, 360);
+    c.fillStyle = '#26282b'; c.fillRect(100, 60, 680, 318);
+    for (let i = 0; i < 8; i++) { const x = 185 + (i % 4) * 170, y = i < 4 ? 150 : 320 - 8; c.strokeStyle = '#111214'; c.lineWidth = 9; c.strokeRect(x - 72, y - 72, 144, 144); c.beginPath(); c.moveTo(x - 72, y); c.lineTo(x + 72, y); c.moveTo(x, y - 72); c.lineTo(x, y + 72); c.stroke(); c.beginPath(); c.arc(x, y, 34, 0, TAU); c.strokeStyle = '#3a3c40'; c.lineWidth = 8; c.stroke(); }
+    for (let i = 0; i < 8; i++) { c.beginPath(); c.arc(130 + i * 88, 395, 11, 0, TAU); c.fillStyle = '#1a1b1d'; c.fill(); c.fillStyle = '#e8e8e8'; c.fillRect(129 + i * 88, 386, 2, 8); }
+    // fridge
+    softShadow(c, () => { rr(c, 50, 470, 200, 250, 10); c.fillStyle = '#eee'; c.fill(); }, 26, 10, 14, .55);
+    rr(c, 50, 470, 200, 250, 10); g = c.createLinearGradient(50, 470, 250, 720); g.addColorStop(0, '#f1ede5'); g.addColorStop(1, '#d6d0c5'); c.fillStyle = g; c.fill();
+    c.fillStyle = 'rgba(0,0,0,.08)'; c.fillRect(242, 480, 6, 230);
+    const herbPot = (x, y, s) => { c.beginPath(); c.arc(x, y, s, 0, TAU); c.fillStyle = '#b8643c'; c.fill(); c.beginPath(); c.arc(x, y, s * .82, 0, TAU); c.fillStyle = '#4a3322'; c.fill(); for (let i = 0; i < 9; i++) { c.save(); c.translate(x, y); c.rotate(i / 9 * TAU + .2); c.translate(s * .55, 0); c.scale(s * .9, s * .9); G.basil(c, mulberry(i), '#3f8a2d'); c.restore(); } };
+    herbPot(150, 540, 34); herbPot(2890, 300, 30);
+    // island: cabinets and butcher block
+    softShadow(c, () => { c.fillStyle = '#ddd'; c.fillRect(420, 620, 1300, 440); }, 34, 12, 22, .55);
+    c.drawImage(woodTop(1300, 440, '#c69a66', 'v', 52, 4), 420, 620);
+    c.strokeStyle = 'rgba(70,40,15,.35)'; c.lineWidth = 3; c.strokeRect(421, 621, 1298, 438);
+    // long table with benches
+    [[TABLE.x + 30, TABLE.y - 70, TABLE.w - 60, 50], [TABLE.x + 30, TABLE.y + TABLE.h + 20, TABLE.w - 60, 50]].forEach(([x, y, w, h]) => { softShadow(c, () => { rr(c, x, y, w, h, 8); c.fillStyle = '#7a5a40'; c.fill(); }, 12, 5, 8, .4); c.drawImage(woodTop(w, h, '#7a5a40', 'h', 25, 7), x, y); });
+    softShadow(c, () => { c.fillStyle = '#ddd'; c.fillRect(TABLE.x, TABLE.y, TABLE.w, TABLE.h); }, 38, 14, 26, .6);
+    c.drawImage(woodTop(TABLE.w, TABLE.h, '#6a4a33', 'h', 115, 8), TABLE.x, TABLE.y);
+    // dining table with chairs
+    for (let i = 0; i < 6; i++) { const a = i / 6 * TAU + .3, x = DINING.cx + Math.cos(a) * 385, y = DINING.cy + Math.sin(a) * 385; c.save(); c.translate(x, y); c.rotate(a + Math.PI / 2); softShadow(c, () => { rr(c, -58, -50, 116, 100, 18); c.fillStyle = '#b48a5c'; c.fill(); }, 12, 5, 8, .45); rr(c, -58, -50, 116, 100, 18); c.fillStyle = '#b8905f'; c.fill(); c.beginPath(); c.moveTo(-54, 50); c.quadraticCurveTo(0, 74, 54, 50); c.lineWidth = 14; c.strokeStyle = '#9a7349'; c.stroke(); c.restore(); }
+    softShadow(c, () => { c.beginPath(); c.arc(DINING.cx, DINING.cy, DINING.r, 0, TAU); c.fillStyle = '#ddd'; c.fill(); }, 40, 14, 26, .6);
+    c.save(); c.beginPath(); c.arc(DINING.cx, DINING.cy, DINING.r, 0, TAU); c.clip(); c.drawImage(woodTop(DINING.r * 2, DINING.r * 2, '#c8a274', 'h', 94, 11), DINING.cx - DINING.r, DINING.cy - DINING.r); c.restore();
+    c.beginPath(); c.arc(DINING.cx, DINING.cy, DINING.r - 3, 0, TAU); c.lineWidth = 6; c.strokeStyle = 'rgba(90,60,30,.35)'; c.stroke();
+    // cat corner
+    c.save(); c.translate(2690, 1780); softShadow(c, () => { c.beginPath(); c.arc(0, 0, 110, 0, TAU); c.fillStyle = '#8a9aa8'; c.fill(); }, 16, 5, 9, .45);
+    const bg = c.createRadialGradient(-20, -30, 20, 0, 0, 110); bg.addColorStop(0, '#9fb0bf'); bg.addColorStop(1, '#6a7b8a'); c.fillStyle = bg; c.beginPath(); c.arc(0, 0, 110, 0, TAU); c.fill();
+    const cg = c.createRadialGradient(-10, -10, 10, 0, 0, 76); cg.addColorStop(0, '#e9e1d2'); cg.addColorStop(1, '#c9bda8'); c.fillStyle = cg; c.beginPath(); c.arc(0, 0, 76, 0, TAU); c.fill(); c.restore();
+    [[2455, 1860, '#7a5a3a'], [2550, 1872, '#9cc3d6']].forEach(([x, y, col], i) => { c.beginPath(); c.arc(x, y, 40, 0, TAU); c.fillStyle = '#a9aeb2'; c.fill(); c.beginPath(); c.arc(x, y, 30, 0, TAU); c.fillStyle = col; c.fill(); if (!i) { const r3 = mulberry(4); for (let k = 0; k < 26; k++) { c.beginPath(); c.arc(x + (r3() - .5) * 44, y + (r3() - .5) * 44, 4.5, 0, TAU); c.fillStyle = r3() < .5 ? '#5a3e24' : '#8a6038'; c.fill(); } } else { c.fillStyle = 'rgba(255,255,255,.5)'; c.beginPath(); c.ellipse(x - 8, y - 8, 12, 5, -.6, 0, TAU); c.fill(); } });
+    // big plants
+    const plant = (x, y, s, seed) => { c.save(); c.translate(x, y); softShadow(c, () => { c.beginPath(); c.arc(0, 0, s * .45, 0, TAU); c.fillStyle = '#c9b8a0'; c.fill(); }, 16, 6, 10, .45); c.beginPath(); c.arc(0, 0, s * .45, 0, TAU); c.fillStyle = '#d6c8b2'; c.fill(); const r4 = mulberry(seed); for (let i = 0; i < 11; i++) { c.save(); c.rotate(r4() * TAU); c.translate(s * (.3 + r4() * .35), 0); c.scale(s * .75, s * .75); softShadow(c, () => G.leaf(c, r4, i % 2 ? '#2f6b34' : '#3b7a3c', { w: .45 }), 10, 4, 6, .35); c.restore(); } c.restore(); };
+    plant(150, 1880, 200, 3); plant(2880, 1560, 170, 8); plant(1830, 1880, 150, 5);
+    // signs
+    ZONES.forEach(z => {
+      const [x, y] = z.sign, col = chap(z.n).color;
+      c.font = '400 30px Caprasimo, Georgia, serif'; const w1 = c.measureText(z.name).width; c.font = '500 17px "Spline Sans Mono", monospace'; const w2 = c.measureText(z.sub.toUpperCase()).width; const w = Math.max(w1, w2) + 56;
+      softShadow(c, () => { rr(c, x - w / 2, y - 38, w, 76, 38); c.fillStyle = '#efe9dd'; c.fill(); }, 12, 3, 6, .45);
+      c.beginPath(); c.arc(x - w / 2 + 28, y - 8, 7, 0, TAU); c.fillStyle = col; c.fill();
+      c.fillStyle = '#29241f'; c.textAlign = 'center'; c.textBaseline = 'alphabetic'; c.font = '400 30px Caprasimo, Georgia, serif'; c.fillText(z.name, x + 8, y + 2);
+      c.font = '500 17px "Spline Sans Mono", monospace'; c.fillStyle = '#6f675d'; c.fillText(z.sub.toUpperCase(), x, y + 26);
+    });
+    STATIC = S;
+    // light map
+    const L = mk(W / 4, H / 4), l = L.getContext('2d'); l.scale(.25, .25);
+    const pool = (x, y, r, a) => { const gg = l.createRadialGradient(x, y, 0, x, y, r); gg.addColorStop(0, `rgba(255,214,150,${a})`); gg.addColorStop(1, 'rgba(255,214,150,0)'); l.fillStyle = gg; l.fillRect(x - r, y - r, r * 2, r * 2); };
+    pool(830, 840, 520, .16); pool(1310, 840, 520, .16); pool(DINING.cx, DINING.cy, 620, .18); pool(2400, 905, 700, .1); pool(440, 230, 500, .08);
+    l.fillStyle = 'rgba(235,245,255,.08)'; l.beginPath(); l.moveTo(1990, 50); l.lineTo(2390, 50); l.lineTo(2620, 700); l.lineTo(1960, 700); l.fill();
+    l.beginPath(); l.moveTo(50, 1260); l.lineTo(50, 1660); l.lineTo(700, 1820); l.lineTo(700, 1380); l.fill();
+    LIGHT = L;
+  }
+
+  /* ---------------- camera ---------------- */
+  const cam = { x: W / 2, y: H / 2, s: .4 }; let tween = null, vw = 0, vh = 0;
+  function fitScale() { return Math.min(vw / (W + 120), vh / (H + 160)); }
+  function resize() { const r = cv.getBoundingClientRect(); vw = r.width; vh = r.height; cv.width = Math.round(vw * DPR); cv.height = Math.round(vh * DPR); }
+  const toWorld = (sx, sy) => [(sx - vw / 2) / cam.s + cam.x, (sy - vh / 2) / cam.s + cam.y];
+  function clampCam() { const f = fitScale(); cam.s = clamp(cam.s, f * .85, 6); const mx = Math.max(0, (W * cam.s - vw) / 2 / cam.s) + 200, my = Math.max(0, (H * cam.s - vh) / 2 / cam.s) + 200; cam.x = clamp(cam.x, W / 2 - mx, W / 2 + mx); cam.y = clamp(cam.y, H / 2 - my, H / 2 + my); }
+  function flyTo(x, y, s, dur = 950) { tween = { t0: performance.now(), dur: A.REDUCED ? 1 : dur, from: { ...cam }, to: { x, y, s } }; }
+  const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  function panelW() { return !panel.hidden && innerWidth >= 900 ? Math.min(430, innerWidth * .36) : 0; }
+
+  /* ---------------- dishes ---------------- */
+  const HIRES = {};
+  function imgFor(d) { if (focus === d && HIRES[d.id]) return HIRES[d.id]; const im = A.THUMB_IMG[d.id]; return im && im.complete && im.naturalWidth ? im : null; }
+  let hover = null, focus = null;
+
+  /* ---------------- cats ---------------- */
+  const CATS = [
+    { name: 'Pumpa', title: 'köksinspektör', coat: { base: '#d6883c', dark: '#a4561f', light: '#f2c28c', belly: '#f7e6d0', stripes: 1 }, L: 175, x: 1300, y: 1300, h: 0, mode: 'walk', seed: 1 },
+    { name: 'Sotis', title: 'smulexpert', coat: { base: '#2a2a2f', dark: '#141417', light: '#4a4a52', belly: '#f1ede6', socks: 1 }, L: 165, x: 2350, y: 1500, h: 2, mode: 'walk', seed: 2 },
+    { name: 'Molly', title: 'sover helst', coat: { base: '#8f959c', dark: '#62686e', light: '#c2c7cc', belly: '#f3f1ec', patches: 1 }, L: 160, x: 2690, y: 1780, h: 1, mode: 'sleep', t: 22, seed: 3 }
+  ];
+  CATS.forEach(k => { k.v = 0; k.gait = 0; k.tx = k.x; k.ty = k.y; k.t = k.t || 1; k.bubble = null; });
+  function blocked(x, y, m = 60) { if (x < 50 + m || y < 50 + m || x > W - 50 - m || y > H - 50 - m) return true; return SOLID.some(s => x > s.x - m && x < s.x + s.w + m && y > s.y - m && y < s.y + s.h + m); }
+  function clearPath(x0, y0, x1, y1) { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 25); for (let i = 1; i <= n; i++) { const t = i / n; if (blocked(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, 55)) return false; } return true; }
+  function pickTarget(k) {
+    for (let i = 0; i < 40; i++) { const x = 120 + rnd() * (W - 240), y = 420 + rnd() * (H - 520); if (!blocked(x, y) && clearPath(k.x, k.y, x, y) && Math.hypot(x - k.x, y - k.y) > 250) return [x, y]; }
+    for (let i = 0; i < 40; i++) { const a = rnd() * TAU, d = 120 + rnd() * 250, x = k.x + Math.cos(a) * d, y = k.y + Math.sin(a) * d; if (!blocked(x, y) && clearPath(k.x, k.y, x, y)) return [x, y]; }
+    return [k.x, k.y];
+  }
+  const SNIFF = [[1070, 1115, -Math.PI / 2, 'Köksön'], [600, 1115, -Math.PI / 2, 'Köksön'], [1500, 1115, -Math.PI / 2, 'Köksön'], [1300, 400, -Math.PI / 2, 'Bänken'], [520, 470, -Math.PI / 2, 'Spisen'], [2400, 1330, -Math.PI / 2, 'Skafferibordet'], [1100, 1560, Math.PI, 'Matbordet']];
+  function nextBehaviour(k) {
+    const r = rnd();
+    if (k.name === 'Molly' && r < .45) { k.mode = 'walk'; k.goal = 'bed'; [k.tx, k.ty] = [2690, 1780]; return; }
+    if (r < .3) { k.mode = 'sit'; k.t = 3 + rnd() * 4; return; }
+    if (r < .55) { const s = SNIFF[Math.floor(rnd() * SNIFF.length)]; if (clearPath(k.x, k.y, s[0], s[1])) { k.mode = 'walk'; k.goal = 'sniff'; k.sn = s; [k.tx, k.ty] = s; return; } }
+    if (r < .66) { k.mode = 'groom'; k.t = 3 + rnd() * 3; return; }
+    k.mode = 'walk'; k.goal = null; [k.tx, k.ty] = pickTarget(k); k.fast = rnd() < .2;
+  }
+  function nearestDish(x, y, zone) { let b = null, bd = 1e9; DISH.forEach(d => { if (zone && d.zone !== zone) return; const dd = Math.hypot(d.x - x, d.y - y); if (dd < bd) { bd = dd; b = d; } }); return b; }
+  function updateCat(k, dt) {
+    if (k.bubble) { k.bubble.t -= dt; if (k.bubble.t <= 0) k.bubble = null; }
+    if (k.mode === 'walk') {
+      const dx = k.tx - k.x, dy = k.ty - k.y, d = Math.hypot(dx, dy);
+      if (d < 14) {
+        k.v = 0;
+        if (k.goal === 'bed') { k.mode = 'sleep'; k.t = 14 + rnd() * 20; k.h = 1.1; return; }
+        if (k.goal === 'sniff') { k.mode = 'sniff'; k.t = 4; k.h = k.sn[2]; const dd = nearestDish(k.x, k.y - 200, k.sn[3]); k.bubble = { dish: dd, t: 3.6 }; return; }
+        nextBehaviour(k); return;
+      }
+      const want = Math.atan2(dy, dx); let da = ((want - k.h + Math.PI * 3) % TAU) - Math.PI; k.h += clamp(da, -3.2 * dt, 3.2 * dt);
+      const sp = (k.fast ? 170 : 85) * (Math.abs(da) > 1 ? .4 : 1); k.v = sp;
+      k.x += Math.cos(k.h) * sp * dt; k.y += Math.sin(k.h) * sp * dt; k.gait += sp * dt / 26;
+    } else { k.t -= dt; if (k.t <= 0) nextBehaviour(k); }
+  }
+  function drawCat(c, k, t) {
+    const co = k.coat, L = k.L; c.save(); c.translate(k.x, k.y);
+    if (k.mode === 'sleep') {
+      const br = 1 + Math.sin(t * 1.6 + k.seed) * .025;
+      c.fillStyle = 'rgba(20,12,6,.25)'; c.beginPath(); c.ellipse(8, 10, L * .36, L * .33, 0, 0, TAU); c.fill();
+      c.rotate(k.h); c.scale(L * br, L * br);
+      c.lineCap = 'round'; c.strokeStyle = co.base; c.lineWidth = .09; c.beginPath(); c.arc(0, 0, .29, .4, 2.9); c.stroke(); c.strokeStyle = co.dark; c.lineWidth = .06; c.beginPath(); c.arc(0, 0, .29, 2.5, 2.95); c.stroke();
+      const g = c.createRadialGradient(-.08, -.08, .02, 0, 0, .3); g.addColorStop(0, co.light); g.addColorStop(.6, co.base); g.addColorStop(1, co.dark); c.fillStyle = g; c.beginPath(); c.arc(0, 0, .27, 0, TAU); c.fill();
+      if (co.stripes) { c.strokeStyle = C.rgba(co.dark, .55); c.lineWidth = .03; for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(0, 0, .12 + i * .03, -1.6 + i * .2, -.4 + i * .2); c.stroke(); } }
+      if (co.patches) { c.fillStyle = co.belly; c.beginPath(); c.ellipse(-.08, .1, .1, .07, .4, 0, TAU); c.fill(); }
+      c.save(); c.translate(.14, -.12); ball(c, 0, 0, .13, co.base, .3, .35); ear(c, co, -.06, -.09, -.9); ear(c, co, .08, -.08, .2);
+      c.strokeStyle = C.rgba(co.dark === '#141417' ? '#555' : '#2a1a10', .8); c.lineWidth = .012; c.beginPath(); c.arc(-.03, .02, .03, .2, 2.8); c.stroke(); c.beginPath(); c.arc(.05, .03, .03, .2, 2.8); c.stroke(); c.restore();
+      c.restore();
+      c.save(); c.globalAlpha = .7; c.fillStyle = '#efe9dd'; c.font = '400 26px Caprasimo, Georgia, serif';
+      for (let i = 0; i < 3; i++) { const p = ((t * .35 + i / 3) % 1); c.globalAlpha = Math.sin(p * Math.PI) * .8; c.font = `400 ${18 + p * 16}px Caprasimo, Georgia, serif`; c.fillText('z', k.x + 40 + p * 50 + Math.sin(p * 6) * 8, k.y - 40 - p * 90); } c.restore();
+      return;
+    }
+    c.fillStyle = 'rgba(20,12,6,.26)'; c.beginPath(); c.ellipse(Math.cos(k.h) * 4 + 6, Math.sin(k.h) * 4 + 10, L * .5, L * .26, k.h, 0, TAU); c.fill();
+    c.rotate(k.h); c.scale(L, L);
+    const sitting = k.mode !== 'walk';
+    const sw = Math.sin(t * (sitting ? 1.3 : 2.4) + k.seed * 3);
+    c.lineCap = 'round';
+    if (!sitting) {
+      c.strokeStyle = co.base; c.lineWidth = .075; c.beginPath(); c.moveTo(-.38, 0); c.bezierCurveTo(-.6, sw * .12, -.76, sw * .22, -.92, sw * .12 + .05 * Math.sin(t * 3)); c.stroke();
+      c.strokeStyle = co.dark; c.lineWidth = .06; c.beginPath(); c.moveTo(-.84, sw * .18); c.lineTo(-.92, sw * .12 + .05 * Math.sin(t * 3)); c.stroke();
+      const ph = k.gait; [[.24, .15, 0], [.24, -.15, Math.PI], [-.22, .15, Math.PI], [-.22, -.15, 0]].forEach(([x, y, o]) => { const f = Math.sin(ph + o) * (k.v > 0 ? .09 : 0); c.fillStyle = co.socks ? co.belly : co.dark; c.beginPath(); c.ellipse(x + f, y * 1.18, .065, .042, 0, 0, TAU); c.fill(); });
+      const g = c.createRadialGradient(-.05, -.05, .02, 0, 0, .45); g.addColorStop(0, co.light); g.addColorStop(.55, co.base); g.addColorStop(1, co.dark);
+      c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, .42, .185, 0, 0, TAU); c.fill();
+      if (co.stripes) { c.strokeStyle = C.rgba(co.dark, .6); c.lineWidth = .028; for (let i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(i * .09, -.17); c.quadraticCurveTo(i * .09 + .04, 0, i * .09, .17); c.stroke(); } }
+      if (co.patches) { c.fillStyle = co.belly; c.beginPath(); c.ellipse(.1, .05, .12, .08, .3, 0, TAU); c.fill(); c.beginPath(); c.ellipse(-.22, -.06, .07, .05, 0, 0, TAU); c.fill(); }
+      const hb = Math.sin(k.gait * 2) * .01; c.save(); c.translate(.47 + hb, 0); drawHeadTop(c, co); c.restore();
+    } else {
+      c.strokeStyle = co.base; c.lineWidth = .07; c.beginPath(); c.moveTo(-.28, .02); c.bezierCurveTo(-.36, .28, 0, .34, .18, .26 + sw * .02); c.stroke(); c.strokeStyle = co.dark; c.lineWidth = .055; c.beginPath(); c.moveTo(.1, .29); c.lineTo(.18, .26 + sw * .02); c.stroke();
+      const g = c.createRadialGradient(-.1, -.06, .02, -.05, 0, .32); g.addColorStop(0, co.light); g.addColorStop(.55, co.base); g.addColorStop(1, co.dark);
+      c.fillStyle = g; c.beginPath(); c.ellipse(-.06, 0, .27, .21, 0, 0, TAU); c.fill();
+      if (co.stripes) { c.strokeStyle = C.rgba(co.dark, .6); c.lineWidth = .028; for (let i = -2; i <= 1; i++) { c.beginPath(); c.moveTo(i * .08 - .04, -.19); c.quadraticCurveTo(i * .08, 0, i * .08 - .04, .19); c.stroke(); } }
+      [.07, -.07].forEach(y => { c.fillStyle = co.socks ? co.belly : co.base; c.beginPath(); c.ellipse(.2, y, .06, .038, 0, 0, TAU); c.fill(); });
+      if (k.mode === 'look') { c.save(); c.translate(.14, 0); c.rotate(-k.h); c.scale(1 / 1, 1); drawFace(c, co, t); c.restore(); }
+      else { let hx = .17, hy = 0; if (k.mode === 'groom') { hy = Math.sin(t * 5) * .05; hx = .14 + Math.max(0, Math.sin(t * 5)) * .03; } if (k.mode === 'sniff') { hx = .22 + Math.sin(t * 7) * .012; } c.save(); c.translate(hx, hy); drawHeadTop(c, co); c.restore(); }
+    }
+    c.restore();
+  }
+  function ear(c, co, x, y, rot) { c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = co.base; c.beginPath(); c.moveTo(-.05, .02); c.lineTo(0, -.08); c.lineTo(.05, .02); c.closePath(); c.fill(); c.fillStyle = '#e9a7a0'; c.beginPath(); c.moveTo(-.025, .01); c.lineTo(0, -.05); c.lineTo(.025, .01); c.closePath(); c.fill(); c.restore(); }
+  function drawHeadTop(c, co) {
+    ear(c, co, -.02, -.12, -1.9); ear(c, co, -.02, .12, 1.9 - Math.PI);
+    const g = c.createRadialGradient(-.03, -.03, .01, 0, 0, .17); g.addColorStop(0, co.light); g.addColorStop(.6, co.base); g.addColorStop(1, co.dark); c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, .15, .14, 0, 0, TAU); c.fill();
+    c.fillStyle = co.patches || co.socks ? co.belly : C.light(co.base, .3); c.beginPath(); c.ellipse(.12, 0, .05, .06, 0, 0, TAU); c.fill();
+    c.fillStyle = '#e28a86'; c.beginPath(); c.arc(.165, 0, .014, 0, TAU); c.fill();
+    if (co.stripes) { c.strokeStyle = C.rgba(co.dark, .7); c.lineWidth = .02; [-.04, 0, .04].forEach(y => { c.beginPath(); c.moveTo(-.08, y); c.lineTo(.03, y * .6); c.stroke(); }); }
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = .006; [[.14, .05, .3, .13], [.14, .05, .3, .07], [.14, -.05, .3, -.13], [.14, -.05, .3, -.07]].forEach(([a, b, cc, d]) => { c.beginPath(); c.moveTo(a, b); c.lineTo(cc, d); c.stroke(); });
+  }
+  function drawFace(c, co, t) {
+    // the head turned up towards the viewer
+    const blink = (t % 3.8) < .12 ? .15 : 1;
+    [[-.1, -.13, -.35], [.1, -.13, .35]].forEach(([x, y, r]) => { c.save(); c.translate(x, y); c.rotate(r); c.fillStyle = co.base; c.beginPath(); c.moveTo(-.07, .05); c.lineTo(0, -.1); c.lineTo(.07, .05); c.closePath(); c.fill(); c.fillStyle = '#e9a7a0'; c.beginPath(); c.moveTo(-.035, .03); c.lineTo(0, -.06); c.lineTo(.035, .03); c.closePath(); c.fill(); c.restore(); });
+    const g = c.createRadialGradient(-.04, -.05, .01, 0, 0, .2); g.addColorStop(0, co.light); g.addColorStop(.6, co.base); g.addColorStop(1, co.dark); c.fillStyle = g; c.beginPath(); c.ellipse(0, 0, .19, .17, 0, 0, TAU); c.fill();
+    c.fillStyle = co.patches || co.socks ? co.belly : C.light(co.base, .35); c.beginPath(); c.ellipse(0, .07, .09, .07, 0, 0, TAU); c.fill();
+    [-.065, .065].forEach(x => { c.fillStyle = co.base === '#2a2a2f' ? '#d9c24a' : '#6f9a3a'; c.beginPath(); c.ellipse(x, -.02, .038, .042 * blink, 0, 0, TAU); c.fill(); c.fillStyle = '#111'; c.beginPath(); c.ellipse(x, -.02, .016, .036 * blink, 0, 0, TAU); c.fill(); if (blink > .5) { c.fillStyle = '#fff'; c.beginPath(); c.arc(x - .012, -.035, .009, 0, TAU); c.fill(); } });
+    c.fillStyle = '#e07c7a'; c.beginPath(); c.moveTo(-.02, .04); c.lineTo(.02, .04); c.lineTo(0, .062); c.closePath(); c.fill();
+    c.strokeStyle = '#3a2a22'; c.lineWidth = .008; c.beginPath(); c.moveTo(0, .062); c.quadraticCurveTo(-.02, .09, -.04, .08); c.moveTo(0, .062); c.quadraticCurveTo(.02, .09, .04, .08); c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.7)'; c.lineWidth = .005; [[.06, .06, .22, .03], [.06, .07, .22, .09], [-.06, .06, -.22, .03], [-.06, .07, -.22, .09]].forEach(([a, b, cc, d]) => { c.beginPath(); c.moveTo(a, b); c.lineTo(cc, d); c.stroke(); });
+  }
+  function drawBubble(c, k) {
+    const b = k.bubble, a = Math.min(1, b.t * 3, (b.t0 || 3.6) - b.t + .01 > 0 ? 1 : 1);
+    const x = k.x + 70, y = k.y - 170, s = 1 / Math.max(.6, cam.s) ;
+    c.save(); c.globalAlpha = Math.min(1, b.t * 2.5); c.translate(x, y); c.scale(s, s);
+    c.fillStyle = '#f7f2e8'; c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = 12; c.shadowOffsetY = 4;
+    [[-50, 110, 8], [-30, 82, 12]].forEach(([bx, by, r]) => { c.beginPath(); c.arc(bx, by, r, 0, TAU); c.fill(); });
+    if (b.dish) {
+      c.beginPath(); for (let i = 0; i < 9; i++) { const aa = i / 9 * TAU; c.arc(Math.cos(aa) * 58, Math.sin(aa) * 46, 30, aa - 1, aa + 1); } c.closePath(); c.fill(); c.shadowColor = 'transparent';
+      const im = A.THUMB_IMG[b.dish.id]; if (im && im.complete) c.drawImage(im, -52, -52, 104, 104);
+    } else {
+      rr(c, -70, -36, 140, 64, 32); c.fill(); c.shadowColor = 'transparent'; c.fillStyle = '#29241f'; c.font = '400 30px Caprasimo, Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(b.text, 0, -3);
+    }
+    c.restore();
+  }
+
+  /* ---------------- steam ---------------- */
+  const steam = [];
+  function spawnSteam(dt) {
+    DISH.forEach(d => { if (!STEAMY.has(d.id)) return; if (Math.random() < dt * 2.2) steam.push({ x: d.x + (Math.random() - .5) * d.s * .35, y: d.y + (Math.random() - .5) * d.s * .35, r: 10, a: 0, life: 0, max: 2.4 + Math.random() * 1.6, vx: 6 + Math.random() * 10, vy: -8 - Math.random() * 8 }); });
+  }
+
+  /* ---------------- frame ---------------- */
+  let raf = 0, last = 0, running = false;
+  function frame(now) {
+    if (!running) return; const dt = Math.min(.05, (now - (last || now)) / 1000); last = now; const t = now / 1000;
+    if (tween) { const p = Math.min(1, (now - tween.t0) / tween.dur), e = easeIO(p); cam.x = tween.from.x + (tween.to.x - tween.from.x) * e; cam.y = tween.from.y + (tween.to.y - tween.from.y) * e; cam.s = Math.exp(Math.log(tween.from.s) + (Math.log(tween.to.s) - Math.log(tween.from.s)) * e); if (p >= 1) tween = null; }
+    CATS.forEach(k => updateCat(k, dt));
+    spawnSteam(dt);
+    for (let i = steam.length - 1; i >= 0; i--) { const p = steam[i]; p.life += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.r += 18 * dt; if (p.life > p.max) steam.splice(i, 1); }
+    const c = ctx; c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cv.width, cv.height);
+    c.setTransform(DPR * cam.s, 0, 0, DPR * cam.s, DPR * (vw / 2 - cam.x * cam.s), DPR * (vh / 2 - cam.y * cam.s));
+    c.imageSmoothingQuality = 'high';
+    if (STATIC) c.drawImage(STATIC, 0, 0, W, H);
+    // cats under the tables are drawn before the tables' dishes but hidden by nothing: tables are baked in, so draw cats first
+    const under = k => (Math.hypot(k.x - DINING.cx, k.y - DINING.cy) < DINING.r - 20) || (k.x > TABLE.x + 20 && k.x < TABLE.x + TABLE.w - 20 && k.y > TABLE.y + 20 && k.y < TABLE.y + TABLE.h - 20);
+    CATS.forEach(k => { if (under(k)) { c.save(); c.globalAlpha = .0; c.restore(); } else drawCat(c, k, t + k.seed); });
+    // dishes
+    const [wx0, wy0] = toWorld(0, 0), [wx1, wy1] = toWorld(vw, vh);
+    DISH.forEach(d => {
+      if (d.x + d.s < wx0 || d.x - d.s > wx1 || d.y + d.s < wy0 || d.y - d.s > wy1) return;
+      const im = imgFor(d), lift = d === hover || d === focus ? 1 : 0;
+      if (lift) { const g = c.createRadialGradient(d.x, d.y, d.s * .25, d.x, d.y, d.s * .62); g.addColorStop(0, 'rgba(255,226,170,.45)'); g.addColorStop(1, 'rgba(255,226,170,0)'); c.fillStyle = g; c.beginPath(); c.arc(d.x, d.y, d.s * .62, 0, TAU); c.fill(); }
+      const s = d.s * (1 + lift * .05);
+      if (im) c.drawImage(im, d.x - s / 2, d.y - s / 2 - lift * 4, s, s);
+      else { c.fillStyle = 'rgba(255,255,255,.12)'; c.beginPath(); c.arc(d.x, d.y, d.s * .36, 0, TAU); c.fill(); }
+    });
+    // steam
+    steam.forEach(p => { const a = Math.sin(Math.min(1, p.life / p.max) * Math.PI) * .16; const g = c.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r); g.addColorStop(0, `rgba(255,255,255,${a})`); g.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = g; c.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2); });
+    // pendant lamps
+    [[830, 840], [1310, 840], [DINING.cx, DINING.cy]].forEach(([x, y]) => {
+      c.save(); c.shadowColor = 'rgba(10,6,3,.4)'; c.shadowBlur = 30; c.shadowOffsetX = 24; c.shadowOffsetY = 36;
+      const g = c.createRadialGradient(x - 18, y - 22, 4, x, y, 62); g.addColorStop(0, '#f3dcaa'); g.addColorStop(.45, '#c89a55'); g.addColorStop(1, '#7a5a2e'); c.fillStyle = g; c.beginPath(); c.arc(x, y, 58, 0, TAU); c.fill(); c.restore();
+      c.beginPath(); c.arc(x, y, 58, 0, TAU); c.lineWidth = 3; c.strokeStyle = 'rgba(255,240,200,.35)'; c.stroke();
+      c.beginPath(); c.arc(x, y, 12, 0, TAU); c.fillStyle = '#3a2c1c'; c.fill();
+    });
+    // light
+    if (LIGHT) { c.save(); c.globalCompositeOperation = 'lighter'; c.drawImage(LIGHT, 0, 0, W, H); c.restore(); }
+    CATS.forEach(k => { if (under(k)) drawUnderHint(c, k, t); });
+    CATS.forEach(k => { if (k.bubble) drawBubble(c, k); });
+    raf = requestAnimationFrame(frame);
+  }
+  function drawUnderHint(c, k, t) { // a tail peeking out from under the table
+    const onDining = Math.hypot(k.x - DINING.cx, k.y - DINING.cy) < DINING.r;
+    if (!onDining) { c.save(); c.globalAlpha = .9; drawTailOnly(c, k, t); c.restore(); }
+  }
+  function drawTailOnly(c, k, t) {
+    const tx = k.x - Math.cos(k.h) * k.L * .7, ty = k.y - Math.sin(k.h) * k.L * .7;
+    const inside = tx > TABLE.x && tx < TABLE.x + TABLE.w && ty > TABLE.y && ty < TABLE.y + TABLE.h;
+    if (inside) return;
+    c.save(); c.translate(k.x, k.y); c.rotate(k.h); c.scale(k.L, k.L); const sw = Math.sin(t * 2.4); c.lineCap = 'round'; c.strokeStyle = k.coat.base; c.lineWidth = .075; c.beginPath(); c.moveTo(-.38, 0); c.bezierCurveTo(-.6, sw * .12, -.76, sw * .22, -.92, sw * .12); c.stroke(); c.restore();
+  }
+
+  /* ---------------- interaction ---------------- */
+  const ptrs = new Map(); let drag = null, moved = false, pinch = null;
+  function dishAt(wx, wy) { let b = null; DISH.forEach(d => { if (Math.hypot(d.x - wx, d.y - wy) < d.s * .38) b = d; }); return b; }
+  function catAt(wx, wy) { return CATS.find(k => Math.hypot(k.x - wx, k.y - wy) < k.L * .45); }
+  cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]); moved = false; if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]), s: cam.s }; } else drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y }; tween = null; });
+  cv.addEventListener('pointermove', e => {
+    const r = cv.getBoundingClientRect();
+    if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+    if (pinch && ptrs.size === 2) { const [a, b] = [...ptrs.values()]; cam.s = pinch.s * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d; clampCam(); moved = true; return; }
+    if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.abs(dx) + Math.abs(dy) > 5) moved = true; if (moved) { cam.x = drag.cx - dx / cam.s; cam.y = drag.cy - dy / cam.s; clampCam(); cv.style.cursor = 'grabbing'; } return; }
+    const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top); const d = dishAt(wx, wy), k = !d && catAt(wx, wy);
+    hover = d; cv.style.cursor = d || k ? 'pointer' : 'grab';
+    if (d) { tipEl.innerHTML = `<b>${A.esc(A.META[d.id].ch.name)} · ${A.META[d.id].ref}</b>${A.esc(A.R[d.id].title)}`; tipEl.style.left = (e.clientX - r.left) + 'px'; tipEl.style.top = (e.clientY - r.top) + 'px'; tipEl.classList.add('on'); }
+    else if (k) { tipEl.innerHTML = `<b>Katt</b>${k.name}, ${k.title}`; tipEl.style.left = (e.clientX - r.left) + 'px'; tipEl.style.top = (e.clientY - r.top) + 'px'; tipEl.classList.add('on'); }
+    else tipEl.classList.remove('on');
+  });
+  const up = e => {
+    ptrs.delete(e.pointerId); if (ptrs.size < 2) pinch = null; cv.style.cursor = 'grab';
+    if (drag && !moved) { const r = cv.getBoundingClientRect(); const [wx, wy] = toWorld(e.clientX - r.left, e.clientY - r.top); const d = dishAt(wx, wy); const k = !d && catAt(wx, wy); if (d) focusDish(d); else if (k) pet(k); else if (focus) unfocus(); }
+    drag = null;
+  };
+  cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+  cv.addEventListener('pointerleave', () => { hover = null; tipEl.classList.remove('on'); });
+  cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), sx = e.clientX - r.left, sy = e.clientY - r.top; const [wx, wy] = toWorld(sx, sy); tween = null; cam.s *= Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0016)); clampCam(); cam.x = wx - (sx - vw / 2) / cam.s; cam.y = wy - (sy - vh / 2) / cam.s; clampCam(); }, { passive: false });
+  function pet(k) {
+    const prev = k.mode; k.mode = 'look'; k.t = 2.8; k.bubble = { text: ['Mjau!', 'Mrrr?', 'Mjao.', 'Prrr…'][Math.floor(rnd() * 4)], t: 2.2 }; k.v = 0;
+    A.SND.meow && A.SND.meow(k.name === 'Sotis' ? 1.25 : k.name === 'Molly' ? .9 : 1);
+  }
+
+  /* ---------------- focus panel ---------------- */
+  function focusDish(d) {
+    focus = d; const pw = innerWidth >= 900 ? Math.min(430, innerWidth * .36) : 0;
+    const mobile = innerWidth < 900;
+    const availW = vw - pw, availH = mobile ? vh * .5 : vh;
+    const s = clamp(Math.min(availW * .62, availH * .7) / d.s, fitScale(), 5.2);
+    const ox = pw / 2 / s, oy = mobile ? vh * .23 / s : 0;
+    flyTo(d.x + ox, d.y + oy, s);
+    if (!HIRES[d.id]) setTimeout(() => { HIRES[d.id] = renderScene(A.scene(d.id), Math.round(clamp(d.s * s * DPR * 1.1, 400, 1400))); }, 30);
+    renderPanel(d); panel.hidden = false;
+    ov.classList.add('focused');
+  }
+  function unfocus() { focus = null; panel.hidden = true; ov.classList.remove('focused'); flyTo(W / 2, H / 2 + 30, fitScale()); }
+  function renderPanel(d) {
+    const r = A.R[d.id], m = A.META[d.id], fl = A.flat(d.id);
+    panel.style.setProperty('--c', m.ch.color);
+    const metas = r.parts.flatMap(p => p.meta || []), steps = r.parts.reduce((a, p) => a + (p.steps || []).length, 0);
+    const ings = fl.filter(f => !/:$/.test(f.t));
+    const mins = r.parts.flatMap(p => p.steps || []).flatMap(s => A.timersIn(s)).reduce((a, t) => a + t.min, 0);
+    const shown = ings.slice(0, 9);
+    panel.querySelector('.kp-body').innerHTML = `
+      <span class="chip"><i></i><span>Flik ${m.ch.n} · ${A.esc(m.ch.name)}</span></span>
+      <h2>${A.esc(r.title)}</h2>
+      <p class="kp-meta">${[d.zone, 'sida ' + m.ref, ...metas].map(A.esc).join(' · ')}</p>
+      <div class="kp-facts"><span><b>${ings.length}</b>ingredienser</span><span><b>${steps}</b>${steps === 1 ? 'steg' : 'steg'}</span>${mins ? `<span><b>${Math.round(mins)}</b>min i timers</span>` : ''}</div>
+      <ul class="kp-ings">${shown.map(f => { const ic = A.iconFor(f.k); const { q, t } = A.qtyHTML(f.t, 1); return `<li>${ic ? `<img src="${ic}" alt="">` : '<i></i>'}<span class="q">${q}</span><span>${t}</span></li>`; }).join('')}</ul>
+      ${ings.length > shown.length ? `<p class="kp-more">och ${ings.length - shown.length} till</p>` : ''}`;
+    const i = DISH.indexOf(d);
+    panel.querySelector('#kpPrev span').textContent = A.R[DISH[(i - 1 + DISH.length) % DISH.length].id].title;
+    panel.querySelector('#kpNext span').textContent = A.R[DISH[(i + 1) % DISH.length].id].title;
+  }
+  panel.querySelector('#kpOpen').addEventListener('click', () => focus && A.openRecipe(focus.id));
+  panel.querySelector('#kpCook').addEventListener('click', () => focus && A.openCook(focus.id));
+  panel.querySelector('#kpPrev').addEventListener('click', () => step(-1));
+  panel.querySelector('#kpNext').addEventListener('click', () => step(1));
+  panel.querySelector('[data-kback]').addEventListener('click', unfocus);
+  function step(dir) { const i = focus ? DISH.indexOf(focus) : -1; focusDish(DISH[(i + dir + DISH.length) % DISH.length]); }
+  // zone chips & zoom buttons
+  const chips = document.getElementById('kZones');
+  chips.innerHTML = `<button class="btn" type="button" data-z="all">Hela köket</button>` + ZONES.map((z, i) => `<button class="btn" type="button" data-z="${i}"><i style="background:${chap(z.n).color}"></i>${A.esc(z.name)}</button>`).join('');
+  chips.addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; if (focus) { focus = null; panel.hidden = true; ov.classList.remove('focused'); } if (b.dataset.z === 'all') flyTo(W / 2, H / 2 + 30, fitScale()); else { const z = ZONES[+b.dataset.z]; flyTo(z.cam[0], z.cam[1], Math.max(fitScale(), fitScale() * z.cam[2] * 1.9)); } });
+  document.getElementById('kZoomIn').addEventListener('click', () => flyTo(cam.x, cam.y, Math.min(6, cam.s * 1.5), 400));
+  document.getElementById('kZoomOut').addEventListener('click', () => flyTo(cam.x, cam.y, Math.max(fitScale() * .85, cam.s / 1.5), 400));
+
+  /* ---------------- open / close ---------------- */
+  function open(id) {
+    A.showOverlay(ov); resize();
+    if (!STATIC) buildStatic();
+    A.ORDER.forEach(x => A.wantThumb(x));
+    cam.s = fitScale() * 1.35; cam.x = W / 2; cam.y = H / 2 + 30;
+    flyTo(W / 2, H / 2 + 30, fitScale(), 1600);
+    running = true; last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
+    if (id && byId[id]) setTimeout(() => focusDish(byId[id]), 700);
+  }
+  function close() { running = false; cancelAnimationFrame(raf); focus = null; panel.hidden = true; ov.classList.remove('focused'); A.hideOverlay(ov); }
+  function back() { if (focus) { unfocus(); return true; } close(); return true; }
+  window.addEventListener('resize', () => { if (!ov.hidden) { resize(); clampCam(); } });
+  document.addEventListener('keydown', e => {
+    if (ov.hidden || A.topOverlay() !== ov) return;
+    if (e.key === 'ArrowRight') step(1); if (e.key === 'ArrowLeft') step(-1);
+    if (e.key === '+' || e.key === '=') flyTo(cam.x, cam.y, Math.min(6, cam.s * 1.4), 300);
+    if (e.key === '-') flyTo(cam.x, cam.y, Math.max(fitScale() * .85, cam.s / 1.4), 300);
+  });
+  return { open, close, back };
+}
+
+/* Kocken — pops up when a recipe is finished, gives a thumbs up and says something about the dish. */
+const QUIPS = {
+  'linsbolognese': 'Linserna gör jobbet som köttfärsen brukade göra, och de klagar aldrig.',
+  'vegansk-bolognese': 'En timme under lock. Italienska mormödrar skulle nicka gillande. Nästan.',
+  'napolitana': 'Fyrtiofem minuter för en tomatsås. Tålamod är också en ingrediens.',
+  'puttanesca': 'Oliver, kapris och chili. Ingen sås för blyga smaklökar.',
+  'norma': 'Auberginen fick en hel deciliter olivolja. Den förtjänade varenda droppe.',
+  'rakpasta': 'Räkorna är veganska. Ingen har berättat det för dem.',
+  'carbonara': 'Liquid smoke i en carbonara. Tofun har aldrig känt sig så rökig.',
+  'kramig-pastasas': 'Tre deciliter vispgrädde. Det här är ingen sallad, och den låtsas inte heller.',
+  'pastasas-mor': 'Mammas recept. Du får inte ändra något, bara säga att det är gott.',
+  'svamppasta': 'Skogschampinjoner och gräslök. Skogen och trädgården har äntligen träffats.',
+  'avokadopasta': 'Tre avokados i en pastasås. Grönare än så blir inte en tisdag.',
+  'zucchinipasta': 'Zucchinin blev riven och urkramad. Den gav allt för den här rätten.',
+  'dillpasta': 'Halva ärtsåsen mixades. Resten fick vara kvar som vittnen.',
+  'gnocchi': 'Små potatiskuddar i citronsås. Mjukare landning finns inte.',
+  'stuvade-makaroner': 'En liter mjölk och fem deciliter makaroner. Barndomen, fast i kastrull.',
+  'paprika-chorizo': 'Pasta med vinägrett. Går att äta varm, kall eller stående vid kylskåpet.',
+  'pastasallad': 'Två matskedar curry i en pastasallad. Picknickfilten är redo.',
+  'ramen': 'Nudlar, shiitake och pak choi i het buljong. Slurpa gärna, det räknas som beröm.',
+  'stekta-nudlar': 'En portion. Du behöver inte dela med dig, det står i receptet.',
+  'chili-sin-carne': 'Ingen köttfärs skadades under tillagningen av denna chili.',
+  'bonchili': 'Kakao i chilin. Det är inte ett misstag, det är hemligheten.',
+  'korv-stroganoff': 'Falukorv i gräddsås. Svensk husmanskost i vegansk kostym.',
+  'linsgryta': 'Röda linser som kokar på tio minuter. Snabbare än att välja film.',
+  'kikartsgryta': 'Sparade du kikärtsspadet? Då har du en sockerkaka på gång.',
+  'filegryta': 'Fransk filégryta. Dijonsenapen står för hela fransmannen.',
+  'viltgryta': 'Enbär och lingon. Skogen hälsar, fast inga djur var med.',
+  'artsoppa': 'Sexhundra gram ärtor, mixade släta. Grönt ljus för soppa.',
+  'minestrone': 'Grönsaksslattarna fick ett andra liv. Kylskåpet tackar.',
+  'broccolisoppa': 'Små träd, mixade till soppa. Ingen skog kom till skada.',
+  'morotssoppa': 'Nio morötter och en apelsin. Du kommer att se i mörker. Typ.',
+  'purjolokssoppa': 'Potatis och purjo, mixade släta. En filt i skålform.',
+  'vegofarssoppa': 'Färs, potatis och morötter i samma kastrull. Mättare än den ser ut.',
+  'vegobullar': 'Spiskummin och koriander. Köttbullarna har varit på semester i Marocko.',
+  'pannbiff': 'Fyra biffar, jämntjocka. De ska kännas fasta när du trycker, inte du.',
+  'vegoburgare': 'Hemmagjorda burgare. Hamburgerkedjorna skakar lite i knäna.',
+  'fyllda-paprikor': 'Paprikan är både tallrik och mat. Mindre disk, mer mat.',
+  'hoisin-filebitar': 'Allt i en ugnsform. Ugnen gör jobbet, du tar äran.',
+  'yakiniku': 'Cashewmeetly fick koka i 45 minuter. Tålamodet smakar sött med mirin.',
+  'svartbonsas': 'Halva bönorna mosades. Den andra halvan fick titta på.',
+  'bowl': 'Ris, avokado och biffar i en skål. Ordning och reda, fast ätbart.',
+  'raggmunkar': 'Inte för hög värme. Raggmunkar belönar den som väntar.',
+  'ugnspannkaka': 'Kikärtsspad istället för ägg. Hönsen har fått ledigt i dag.',
+  'brunsas': 'Näringsjäst i brunsåsen. Umami utan påse.',
+  'loksas': 'Tre stora lökar, stekta mörkbruna. Köket luktar som ett löfte.',
+  'graddsas': 'Lingonsylt i gräddsåsen. Helt normalt, vi är i Sverige.',
+  'currysas': 'Curry, dragon och gurkmeja. Såsen har stämplar från flera länder i passet.',
+  'jordnotssas': 'Jordnötssmör som middag. Barndomsdrömmen, fast med soja.',
+  'kall-vitlokssas': 'Två vitlöksklyftor. Vampyrer rekommenderas att välja en annan sås.',
+  'kall-ort-vitlokssas': 'En hel knippe oregano. Örtträdgården har flyttat in i skålen.',
+  'kall-pestosas': 'Två teskedar pesto, och crème fraichen blev grön av avund.',
+  'ranchdressing': 'Ranchdressing utan ranch. Men med gräslök, och det räcker.',
+  'remouladsas': 'Bostongurka och kapris. Pommesen har fått en bästa vän.',
+  'dillsas': 'Skolans dillsås. Nu utan kö till matsalen.',
+  'dill-kaprissas': 'Oliver, kapris och dill. Tre små smakbomber i samma skål.',
+  'avokadosas': 'En avokado, mixad len. Den har aldrig varit så slät i kanterna.',
+  'tzatziki': 'Du kramade ur gurkan. Den var mer vatten än du trodde.',
+  'hummus': 'Kikärtor och tahini. Spadet du sparade är bakning i förklädnad.',
+  'bonblandning': 'Tre frysta påsar och lite citron. Snabbare sallad finns inte.',
+  'skagenrora': 'Tångkaviar och tofu. Havet och sojafältet gjorde en röra ihop.',
+  'varrullesaser': 'Tre såser till samma vårrullar. Beslutsångest, men den goda sorten.',
+  'kalsallad': 'Du masserade kålen. Den blev krämigare, och du blev lugnare.',
+  'farskpotatissallad': 'Färskpotatis och rädisor. Midsommar, oavsett vad kalendern säger.',
+  'gurk-tomatsallad': 'Gurka, tomat och rödlök. Enkelt, och det är hela poängen.',
+  'asiatisk-gurka': 'Gurkan låg mellan två slevar. Den har aldrig blivit så snyggt skuren.',
+  'pressgurka': 'Osthyveln kan mer än ost. Pressgurkan tackar.',
+  'picklad-rodlok': 'Rosa lök på trettio minuter. Tack, Wille.',
+  'potatismos': 'Slätt och poröst. Potatisstompen gjorde sitt livs insats.',
+  'gult-ris': 'Gurkmejan gjorde riset gult. Kryddnejlikorna höll koll.',
+  'stekt-tofu': 'Maizena gjorde tofun krispig. Vidar visste vad han gjorde.',
+  'timjan-tofu': 'Tofu, timjan och grädde. Pommes vid sidan är helt enligt receptet.',
+  'overnight-oats': 'Frukosten gjorde sig själv i natt. Du sov, havren jobbade.',
+  'chiapudding': 'Du rörde om efter femton minuter. Chiafröna klumpade sig inte, bra jobbat.',
+  'bananpannkakor': 'En övermogen banan blev pannkakor. Ingen banan lämnas kvar.',
+  'scrambled-tofu': 'Gurkmeja gör tofun gul som äggröra. Hönan är imponerad.',
+  'avokadotoast': 'Grillad avokadotoast. Brunchkaféet kan hålla sina priser för sig själva.',
+  'bruschetta': 'Vitlök gniden på varmt bröd. Italien på fyra skivor.',
+  'fattiga-riddare': 'Rostbröd, kanel och socker. Fattiga, men det märks inte.',
+  'bananbrod': 'Bruna bananer blev bröd. Det bästa karriärvalet en banan kan göra.',
+  'bullar': 'Fyrtio till fyrtiofem bullar. Kaffet kommer inte räcka.',
+  'muffins': 'Grundreceptet är klart. Fyllningen var ditt ansvar, hoppas det gick bra.',
+  'mordegskakor': 'Vallmokakor eller syltkakor? Rätt svar: båda.',
+  'sockerkaka': 'Tildes sockerkaka. Med toscaglasyr blir den lite finare än tänkt.',
+  'kladdkaka': 'Kladdig i mitten är inte ett fel. Det är målet.',
+  'mug-cake': 'En kaka på en minut i mikron. Tålamod är överskattat.',
+  'smulpaj': 'Smulet är poängen. Bären och äpplena är bara ursäkten.',
+  'bananpaj': 'Knäckig bananpaj. Vaniljglassen ligger redan på lur.',
+  'varm-choklad': 'Två deciliter mjölk och två teskedar kakao. Mer behövs inte för att bli glad.',
+  'dalgona': 'Tre minuter med elvisp. Kaffeskummet och armarna är varma nu.',
+  'islatte': 'Kaffet fick kallna först. Det var svårast av allt.'
+};
+const MASCOT_SVG = `
+<svg class="m-svg" viewBox="0 0 240 280" aria-hidden="true">
+  <ellipse class="m-shadow" cx="120" cy="266" rx="62" ry="9" fill="rgba(0,0,0,.35)"/>
+  <g class="m-all">
+    <g class="m-feet"><ellipse cx="96" cy="256" rx="20" ry="11" fill="#2a211b"/><ellipse cx="144" cy="256" rx="20" ry="11" fill="#2a211b"/></g>
+    <g class="m-wave"><path d="M64 150 C 38 140, 26 118, 30 96" fill="none" stroke="#2a211b" stroke-width="20" stroke-linecap="round"/><path d="M64 150 C 38 140, 26 118, 30 96" fill="none" stroke="#fff7ea" stroke-width="12" stroke-linecap="round"/><circle cx="30" cy="92" r="15" fill="#fff7ea" stroke="#2a211b" stroke-width="4"/></g>
+    <path class="m-body" d="M120 72 C 176 72, 190 128, 190 176 C 190 232, 160 256, 120 256 C 80 256, 50 232, 50 176 C 50 128, 64 72, 120 72 Z" fill="#fff7ea" stroke="#2a211b" stroke-width="4"/>
+    <path class="m-apron" d="M70 190 C 70 176, 170 176, 170 190 L 166 232 C 150 248, 90 248, 74 232 Z" fill="var(--c, #d9573b)" stroke="#2a211b" stroke-width="4"/>
+    <rect x="104" y="202" width="32" height="18" rx="6" fill="rgba(255,255,255,.35)"/>
+    <g class="m-face">
+      <ellipse class="m-cheek" cx="80" cy="150" rx="13" ry="8" fill="#f2a3a0" opacity=".8"/><ellipse class="m-cheek" cx="160" cy="150" rx="13" ry="8" fill="#f2a3a0" opacity=".8"/>
+      <g class="m-eyes"><ellipse cx="96" cy="130" rx="9" ry="12" fill="#2a211b"/><ellipse cx="144" cy="130" rx="9" ry="12" fill="#2a211b"/><circle cx="99" cy="125" r="3.5" fill="#fff"/><circle cx="147" cy="125" r="3.5" fill="#fff"/></g>
+      <path class="m-smile" d="M104 152 Q 120 168, 136 152" fill="none" stroke="#2a211b" stroke-width="4" stroke-linecap="round"/>
+      <g class="m-talk"><path d="M104 150 Q 120 178, 136 150 Z" fill="#7a2a24" stroke="#2a211b" stroke-width="4" stroke-linejoin="round"/><ellipse cx="120" cy="163" rx="8" ry="4" fill="#e58a86"/></g>
+    </g>
+    <g class="m-hat"><rect x="84" y="56" width="72" height="26" rx="6" fill="#fff" stroke="#2a211b" stroke-width="4"/><path d="M84 60 C 60 58, 58 20, 86 22 C 90 2, 122 -2, 128 16 C 142 0, 176 8, 170 32 C 190 40, 180 64, 156 60 Z" fill="#fff" stroke="#2a211b" stroke-width="4" stroke-linejoin="round"/><path d="M104 40 q 6 10 0 18 M 130 36 q 6 10 0 20" fill="none" stroke="#d8d2c8" stroke-width="3" stroke-linecap="round"/></g>
+    <g class="m-thumb"><path d="M178 150 C 204 142, 214 124, 212 102" fill="none" stroke="#2a211b" stroke-width="20" stroke-linecap="round"/><path d="M178 150 C 204 142, 214 124, 212 102" fill="none" stroke="#fff7ea" stroke-width="12" stroke-linecap="round"/>
+      <g transform="translate(212 96)"><rect x="-17" y="-10" width="34" height="30" rx="10" fill="#fff7ea" stroke="#2a211b" stroke-width="4"/><rect x="-14" y="-38" width="14" height="34" rx="7" fill="#fff7ea" stroke="#2a211b" stroke-width="4"/><path d="M-6 2 h18 M-6 10 h18" stroke="#2a211b" stroke-width="3" stroke-linecap="round"/></g></g>
+  </g>
+</svg>`;
+function playMascot(host, id, A) {
+  const r = A.R[id], quip = QUIPS[id] || 'Det där gick ju alldeles utmärkt.';
+  const icons = [...new Set(A.flat(id).map(f => A.iconFor(f.k)).filter(Boolean))];
+  host.innerHTML = `<div class="mascot"><div class="m-stage">${MASCOT_SVG}</div><div class="m-bubble"><p class="m-hi">Smaklig måltid!</p><p class="m-quip" aria-label="${A.esc(quip)}"></p></div><div class="m-confetti"></div></div>`;
+  const m = host.querySelector('.mascot'), q = host.querySelector('.m-quip'), conf = host.querySelector('.m-confetti');
+  // confetti of this dish's own ingredients
+  const N = A.REDUCED ? 0 : 26;
+  for (let i = 0; i < N && icons.length; i++) {
+    const s = document.createElement('img'); s.src = icons[i % icons.length]; s.alt = '';
+    s.style.cssText = `--x:${(Math.random() * 100).toFixed(1)}%;--dx:${((Math.random() - .5) * 160).toFixed(0)}px;--r:${((Math.random() - .5) * 900).toFixed(0)}deg;--d:${(1.8 + Math.random() * 1.6).toFixed(2)}s;--delay:${(.35 + Math.random() * .7).toFixed(2)}s;--s:${(26 + Math.random() * 22).toFixed(0)}px`;
+    conf.appendChild(s);
+  }
+  A.SND.tada && A.SND.tada();
+  // type the quip, mouth moving while it talks
+  let i = 0; const txt = quip;
+  const talk = () => { if (!host.isConnected) return; if (i <= txt.length) { q.textContent = txt.slice(0, i); m.classList.toggle('talking', i < txt.length && /[a-zåäö]/i.test(txt[i] || '')); i += 1; setTimeout(talk, txt[i - 2] === '.' ? 260 : 32); } else m.classList.remove('talking'); };
+  setTimeout(talk, A.REDUCED ? 0 : 1100);
+}
+
 (() => {
 'use strict';
 const $ = (s, el = document) => el.querySelector(s);
@@ -1665,6 +2356,18 @@ const SND = {
       timer = setInterval(() => { if (Math.random() < .55) { const t = c.currentTime, o = c.createOscillator(), g = c.createGain(), f0 = 140 + Math.random() * 260; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f0 * 2.2, t + .06); g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.08 + Math.random() * .08, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + .09); o.connect(g).connect(out); o.start(t); o.stop(t + .1); } }, 110);
       this.amb = { kind, stop() { clearInterval(timer); out.gain.setTargetAtTime(0, c.currentTime, .2); } };
     }
+  },
+  meow(p = 1) {
+    if (!this.on) return; const c = this.ensure(); if (!c) return; const t = c.currentTime;
+    const o = c.createOscillator(); o.type = 'sawtooth'; const f1 = c.createBiquadFilter(); f1.type = 'bandpass'; f1.Q.value = 6; const g = c.createGain();
+    o.frequency.setValueAtTime(420 * p, t); o.frequency.linearRampToValueAtTime(760 * p, t + .16); o.frequency.linearRampToValueAtTime(480 * p, t + .5);
+    f1.frequency.setValueAtTime(900, t); f1.frequency.linearRampToValueAtTime(2200, t + .18); f1.frequency.linearRampToValueAtTime(1100, t + .5);
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(.35, t + .05); g.gain.setValueAtTime(.35, t + .3); g.gain.exponentialRampToValueAtTime(.0001, t + .55);
+    o.connect(f1).connect(g).connect(this.master); o.start(t); o.stop(t + .6);
+  },
+  tada() {
+    if (!this.on) return; const c = this.ensure(); if (!c) return; const t = c.currentTime;
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => { const o = c.createOscillator(), g = c.createGain(); o.type = 'triangle'; o.frequency.value = f; const s = t + i * .09 + (i === 3 ? .06 : 0); g.gain.setValueAtTime(.0001, s); g.gain.exponentialRampToValueAtTime(.18, s + .01); g.gain.exponentialRampToValueAtTime(.0001, s + (i === 3 ? .9 : .25)); o.connect(g).connect(this.master); o.start(s); o.stop(s + 1); });
   },
   toggle() { this.on = !this.on; store.set('sound', this.on); if (this.on) { this.ensure(); this.plop(.03); } else this.ambience(null); syncSoundBtn(); }
 };
@@ -1758,7 +2461,8 @@ function buildBook() {
   html += `<footer class="colophon"><span>Linas recept · ${ORDER.length} recept i fyra flikar</span><span>Tallrikarna ritas i din webbläsare, ur varje recepts ingredienslista.</span></footer>`;
   book.innerHTML = html;
   $$('.card[data-id]', book).forEach(el => { CARDS[el.dataset.id] = el; el.addEventListener('click', () => openRecipe(el.dataset.id, { from: el })); });
-  tabs.innerHTML = CHAPTERS.map(ch => `<a class="tab" href="#flik-${ch.n}" style="--tc:${ch.color}" data-n="${ch.n}"><b>${ch.n}</b><span>${esc(ch.short)}</span></a>`).join('');
+  tabs.innerHTML = CHAPTERS.map(ch => `<a class="tab" href="#flik-${ch.n}" style="--tc:${ch.color}" data-n="${ch.n}"><b>${ch.n}</b><span>${esc(ch.short)}</span></a>`).join('') + `<a class="tab tab-k" href="#koket" style="--tc:#c9895a" data-n="k" data-act="kitchen"><b>5</b><span>Köket</span></a>`;
+  $('.tab-k', tabs).addEventListener('click', e => { e.preventDefault(); KIT && KIT.open(); });
   document.body.classList.add('has-tabs');
   // thumbnails: visible first
   const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { const id = e.target.dataset.id; wantThumb(id, true); io.unobserve(e.target); } }), { rootMargin: '500px 0px' });
@@ -1785,7 +2489,7 @@ function applySearch() {
   $$('.chapter', book).forEach(s => s.classList.toggle('empty', !!q && !$$('.card:not([hidden])', s).length));
   $('.wish', book) && ($('.wish', book).hidden = !!q);
   $('#noresult').hidden = any > 0;
-  $$('.tab', tabs).forEach(t => t.classList.toggle('off', !!q && $('#flik-' + t.dataset.n).classList.contains('empty')));
+  $$('.tab[href^="#flik"]', tabs).forEach(t => t.classList.toggle('off', !!q && $('#flik-' + t.dataset.n).classList.contains('empty')));
 }
 qEl.addEventListener('input', () => { applySearch(); if (qEl.value && window.scrollY < $('#book').offsetTop - 80) $('#bar').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth' }); });
 
@@ -1803,10 +2507,10 @@ document.addEventListener('keydown', e => {
 });
 function closeTop() {
   const top = openStack[openStack.length - 1]; if (!top) return;
-  if (top.id === 'recipe') closeRecipe(); else if (top.id === 'cook') closeCook(); else if (top.id === 'pantry') hideOverlay(top); else if (top.id === 'spin') closeSpin(); else hideOverlay(top);
+  if (top.id === 'recipe') closeRecipe(); else if (top.id === 'kitchen') KIT.back(); else if (top.id === 'cook') closeCook(); else if (top.id === 'pantry') hideOverlay(top); else if (top.id === 'spin') closeSpin(); else hideOverlay(top);
 }
-$$('[data-close]').forEach(b => b.addEventListener('click', () => { const o = b.closest('.overlay, .sheet'); if (o === openStack[openStack.length - 1]) closeTop(); else hideOverlay(o); }));
-$$('[data-act]').forEach(b => b.addEventListener('click', () => { const a = b.dataset.act; if (a === 'spin') openSpin(); if (a === 'pantry') openPantry(); if (a === 'show') startShow(); }));
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { const o = b.closest('.overlay, .sheet'); if (o.id === 'kitchen') { KIT.close(); return; } if (o === openStack[openStack.length - 1]) closeTop(); else hideOverlay(o); }));
+$$('[data-act]').forEach(b => b.addEventListener('click', () => { const a = b.dataset.act; if (a === 'spin') openSpin(); if (a === 'pantry') openPantry(); if (a === 'show') startShow(); if (a === 'kitchen') KIT && KIT.open(); }));
 
 /* ================= recipe view: the plate ================= */
 const rv = { id: null, k: 1, raf: 0, layers: null, S: 0, items: [], hover: -9, show: false };
@@ -2055,11 +2759,12 @@ function renderCook() {
     SND.ambience(/stek|fräs|bryn|rosta|grilla|gratinera/.test(low) ? 'sizzle' : /koka|sjud|puttra|bubbl/.test(low) ? 'simmer' : null);
     setTimeout(() => $$('#kMain [data-t]').forEach(b => b.addEventListener('click', () => { const t = tm[+b.dataset.t]; addTimer(`${r.title} · steg ${n}`, t.min, t.label); b.disabled = true; b.style.opacity = .5; })), 0);
   } else {
-    html += `<p class="k-count">Klart</p><p class="k-step">Smaklig måltid.</p>`;
+    html += `<p class="k-count">Klart · ${esc(r.title)}</p><div class="k-mascot" id="kMascot"></div>`;
     r.parts.forEach(p => { (p.tips || []).forEach(n => html += `<p class="k-note"><b>Tips</b>${esc(n)}</p>`); (p.pairs || []).forEach(n => { const [a, ...b] = n.split(':'); html += `<p class="k-note"><b>${esc(a)}</b>${esc(b.join(':').trim())}</p>`; }); });
     SND.ambience(null);
   }
   const main = $('#kMain'); main.innerHTML = html; main.scrollTop = 0;
+  if (s.type === 'done') playMascot($('#kMascot'), ck.id, API);
   $$('.k-list li', main).forEach(li => li.addEventListener('click', () => { const i = +li.dataset.i; ck.checked.has(i) ? ck.checked.delete(i) : ck.checked.add(i); li.classList.toggle('done'); }));
   $('#kPrev').disabled = ck.i === 0; $('#kPrev').style.visibility = ck.i === 0 ? 'hidden' : '';
   $('#kNext').textContent = s.type === 'prep' ? 'Börja →' : ck.i === ck.list.length - 1 ? 'Stäng' : ck.i === ck.list.length - 2 ? 'Klart →' : 'Nästa →';
@@ -2177,8 +2882,9 @@ function drawWood(R0) {
   c.restore();
   c.lineWidth = R0 * .018; c.strokeStyle = 'rgba(255,235,200,.35)'; c.beginPath(); c.arc(0, 0, R0 * .985, Math.PI * .95, Math.PI * 1.6); c.stroke();
   c.strokeStyle = 'rgba(40,20,5,.35)'; c.beginPath(); c.arc(0, 0, R0 * .985, -.1, Math.PI * .6); c.stroke();
-  c.fillStyle = 'rgba(60,35,15,.55)'; c.font = `${Math.round(R0 * .13)}px Caprasimo, Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('Linas', 0, R0 * .01);
-  c.fillStyle = 'rgba(255,230,190,.18)'; c.fillText('Linas', -R0 * .004, -R0 * .004);
+  const word = 'Mathjulet'; c.font = `100px Caprasimo, Georgia, serif`; const fsz = Math.min(R0 * .13, 100 * R0 * .66 / c.measureText(word).width);
+  c.fillStyle = 'rgba(60,35,15,.55)'; c.font = `${Math.round(fsz)}px Caprasimo, Georgia, serif`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(word, 0, R0 * .01);
+  c.fillStyle = 'rgba(255,230,190,.18)'; c.fillText(word, -R0 * .004, -R0 * .004);
   c.restore(); return cv;
 }
 function spinDraw() {
@@ -2294,12 +3000,16 @@ function initHero() {
 }
 
 /* ================= boot ================= */
+let KIT = null;
+const API = { R, META, ORDER, CHAPTERS, DPR, REDUCED, esc, scene, flat, iconFor, qtyHTML, timersIn, SND, THUMB_IMG, wantThumb, onThumb, showOverlay, hideOverlay, topOverlay: () => openStack[openStack.length - 1], openRecipe: id => openRecipe(id), openCook: id => openCook(id) };
 $('#heroCount').textContent = ORDER.length + ' recept';
 if (matchMedia('(pointer: coarse)').matches) { $('#heroHint').textContent = 'Titeln är lagd av bokens ingredienser. Dra fingret genom den, eller tryck.'; $('#rCaption').textContent = 'Tryck på maten för att se vad den är.'; }
 buildBook();
 initHero();
+try { KIT = initKitchen(API); } catch (e) { console.warn('kitchen', e); }
 const h = decodeURIComponent(location.hash.slice(1));
 if (R[h]) setTimeout(() => openRecipe(h), 300);
+else if (h === 'koket') setTimeout(() => KIT && KIT.open(), 200);
 else if (/^flik-\d$/.test(h)) setTimeout(() => $('#' + h)?.scrollIntoView(), 100);
 window.addEventListener('resize', () => { if (!$('#recipe').hidden && rv.id && rv.ready) { const w = plateEl.getBoundingClientRect().width; if (Math.abs(w * DPR - rv.S) > 40) playPlate(rv.id, { instant: true }); } });
 })();
