@@ -1,0 +1,126 @@
+<title>Linas recept</title>
+<meta name="description" content="Linas kokbok: 89 recept i fyra flikar, varje tallrik ritad av sina egna ingredienser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Spline+Sans+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+<!--INLINE-CSS-->
+
+<div id="loader" aria-hidden="true">
+  <div class="ld-plate"><span class="ld-rim"></span><i style="--c:#69a83a;--x:-34px;--y:-10px;--d:0s"></i><i style="--c:#df4a2e;--x:18px;--y:-26px;--d:.18s"></i><i style="--c:#f2c53a;--x:30px;--y:14px;--d:.36s"></i><i style="--c:#e8792a;--x:-12px;--y:24px;--d:.54s"></i><i style="--c:#3c8a2b;--x:-2px;--y:-2px;--d:.72s"></i><i style="--c:#efe3c8;--x:-30px;--y:22px;--d:.9s"></i><i style="--c:#7b2a2a;--x:8px;--y:34px;--d:1.08s"></i></div>
+  <p class="ld-t">Linas recept</p>
+  <p class="ld-s">Dukar fram <span id="ldN">0</span> av 89 rätter</p>
+  <div class="ld-bar"><b id="ldBar"></b></div>
+</div>
+
+<header class="hero" id="top">
+  <canvas id="heroCanvas" aria-hidden="true"></canvas>
+  <div class="hero-top"><span>Kokbok · fyra flikar</span><span id="heroCount">89 recept</span></div>
+  <h1 id="heroTitle">Linas recept</h1>
+  <div class="hero-copy">
+    <p class="lede">Varje tallrik i boken är <em>ritad av receptets egna ingredienser</em>. Öppna ett recept och se maten landa, håll över tallriken för att se vad den består av.</p>
+    <div class="hero-actions">
+      <a class="btn solid" href="#flik-1">Öppna boken</a>
+      <button class="btn" type="button" data-act="kitchen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg>Gå in i köket</button>
+      <button class="btn" type="button" data-act="spin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/></svg>Snurra fatet</button>
+      <button class="btn" type="button" data-act="pantry"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 10h14M9 6.5v1M9 13v3"/></svg>Vad har du hemma?</button>
+      <button class="btn" type="button" data-act="show"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>Visningsläge</button>
+    </div>
+    <p class="hint" id="heroHint">Titeln är lagd av bokens ingredienser. Rör om i den med muspekaren, eller klicka.</p>
+  </div>
+</header>
+
+<div class="bar" id="bar">
+  <a class="bar-brand" href="#top">Linas recept</a>
+  <label class="search"><span class="sr-only">Sök recept eller ingrediens</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Sök recept eller ingrediens" autocomplete="off">
+  </label>
+  <div class="bar-tools">
+    <button class="btn" type="button" data-act="kitchen" title="Köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-5h4v5"/></svg><span class="lbl">Köket</span></button>
+    <button class="btn" type="button" data-act="pantry" title="Vad har du hemma?"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M5 10h14M9 6.5v1M9 13v3"/></svg><span class="lbl">Hemma</span></button>
+    <button class="btn" type="button" data-act="spin" title="Snurra fatet"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/><path d="M12 3v3M21 12h-3M12 21v-3M3 12h3"/></svg><span class="lbl">Snurra</span></button>
+    <button class="btn" type="button" id="soundBtn" aria-pressed="false" title="Ljud"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 9.5h3.5L12 5v14l-4.5-4.5H4z"/><path class="w" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/></svg><span class="lbl">Ljud</span></button>
+  </div>
+</div>
+
+<nav class="tabs" id="tabs" aria-label="Flikar"></nav>
+
+<main id="book"></main>
+
+<div class="overlay stone" id="recipe" hidden role="dialog" aria-modal="true" aria-labelledby="rTitle">
+  <div class="r-stage" id="rStage">
+    <div class="r-plate" id="rPlate"></div>
+    <div class="r-tip" id="rTip"></div>
+    <p class="r-caption" id="rCaption">Håll över maten för att se vad den är. Håll över en ingrediens för att hitta den på tallriken.</p>
+    <div class="show-cap"><h2 id="sTitle"></h2><p id="sLine"></p></div>
+    <div class="show-bar" id="sBar"></div>
+    <button class="btn show-exit" type="button" id="sExit">Avsluta visning</button>
+  </div>
+  <article class="r-paper" id="rPaper">
+    <div class="r-top"><span class="chip" id="rChip"><i></i><span></span></span><span class="ref" id="rRef"></span></div>
+    <button class="x" type="button" data-close aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <h2 id="rTitle"></h2>
+    <p class="r-meta" id="rMeta"></p>
+    <div class="r-tools">
+      <div class="scale" id="rScale" role="group" aria-label="Mängd"><button type="button" data-k="0.5">½×</button><button type="button" data-k="1" aria-pressed="true">1×</button><button type="button" data-k="2">2×</button><button type="button" data-k="3">3×</button></div>
+      <span class="scale-lbl" id="rScaleLbl"></span>
+      <button class="btn cookbtn" type="button" id="rCook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10.5-6.5z"/></svg>Börja laga</button>
+    </div>
+    <div id="rBody"></div>
+    <nav class="r-nav" id="rNav"></nav>
+  </article>
+</div>
+
+<div class="overlay stone" id="cook" hidden role="dialog" aria-modal="true" aria-label="Laga">
+  <div class="k-bg"><img id="kBg" alt=""></div>
+  <header class="k-head"><span class="k-title" id="kTitle"></span><div class="k-prog" id="kProg"></div><button class="x" type="button" data-close aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+  <section class="k-main" id="kMain" aria-live="polite"></section>
+  <footer class="k-foot"><button class="btn" type="button" id="kPrev">← Föregående</button><button class="btn next" type="button" id="kNext">Nästa →</button></footer>
+</div>
+
+<div class="overlay kitchen" id="kitchen" hidden role="dialog" aria-modal="true" aria-labelledby="kHead">
+  <canvas id="kCanvas"></canvas>
+  <header class="kh"><h2 id="kHead">Köket</h2><p>Alla rätter står framme. Klicka på en rätt för att gå närmare, dra för att flytta dig och scrolla eller nyp för att zooma. Svante, Tage och Loki bor här: klappa dem, lyft och kasta dem, eller ge dem godis.</p></header>
+  <button class="x kx" type="button" data-close aria-label="Stäng köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="kzones" id="kZones"></div>
+  <div class="kplay">
+    <button class="btn" type="button" id="kLaser" aria-pressed="false" title="Laserpekare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="17" cy="7" r="2.4" fill="currentColor"/><path d="M3 21 14 10"/><path d="M19.5 3.5 21 2M21 7h2M17 1v2"/></svg><span>Laser</span></button>
+    <button class="btn" type="button" id="kTreat" aria-pressed="false" title="Ge katterna godis"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 14c0-4 3.6-7 8-7s8 3 8 7-3.6 5-8 5-8-1-8-5Z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="14" cy="11" r="1" fill="currentColor"/><circle cx="13" cy="15" r="1" fill="currentColor"/></svg><span>Godis</span></button>
+    <button class="btn" type="button" id="kTidy" hidden title="Ställ tillbaka rätterna"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 20h16M7 20l2-9h6l2 9M12 11V3"/></svg><span>Städa upp</span></button>
+  </div>
+  <div class="kzoom"><button class="btn" type="button" id="kZoomIn" aria-label="Zooma in">+</button><button class="btn" type="button" id="kZoomOut" aria-label="Zooma ut">−</button></div>
+  <div class="ktoast" id="kToast" role="status"></div>
+  <div class="ktip" id="kTip"></div>
+  <aside class="kpanel" id="kPanel" hidden>
+    <button class="x" type="button" data-kback aria-label="Tillbaka till köket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="kp-body"></div>
+    <div class="kp-btns"><button class="btn solid" type="button" id="kpOpen">Öppna receptet</button><button class="btn" type="button" id="kpCook">Börja laga</button></div>
+    <div class="kp-nav"><button type="button" id="kpPrev"><small>← Förra rätten</small><span></span></button><button type="button" id="kpNext"><small>Nästa rätt →</small><span></span></button></div>
+  </aside>
+</div>
+
+<div class="timers" id="timers"></div>
+
+<aside class="sheet" id="pantry" hidden aria-label="Vad har du hemma?">
+  <header><h2>Vad har du hemma?</h2><p>Välj det du har. Salt, peppar, olja, socker, mjöl, smör, vatten och buljong räknas som skafferi.</p>
+    <button class="x" type="button" data-close aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header>
+  <div class="pchips" id="pChips"></div>
+  <div class="presults" id="pResults"></div>
+  <div class="sheet-foot"><button class="btn" type="button" id="pClear">Rensa</button><button class="btn" type="button" id="pShow">Visa på bordet</button></div>
+</aside>
+
+<div class="overlay stone" id="spin" hidden role="dialog" aria-modal="true" aria-label="Snurra fatet">
+  <canvas id="spinCanvas"></canvas>
+  <button class="x" type="button" data-close aria-label="Stäng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="spin-ui"><p id="spinQ">Vad blir det till middag? Dra i fatet eller tryck på snurra.</p><h2 id="spinResult"></h2>
+    <div class="row"><button class="btn solid" type="button" id="spinGo">Snurra</button><button class="btn" type="button" id="spinOpen" hidden>Öppna receptet</button></div></div>
+</div>
+
+<script src="data.js"></script>
+<script src="engine.js"></script>
+<script src="book.js"></script>
+<script src="kitchen.js"></script>
+<script src="mascot.js"></script>
+<script src="process.js"></script>
+<script src="app.js"></script>
