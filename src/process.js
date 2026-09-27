@@ -5,6 +5,7 @@
    ========================================================================== */
 function initProcess(A) {
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const MB = globalThis.mulberry; const mulberry = s => MB((Math.imul((s | 0) ^ 0x5bd1e995, 2654435761) ^ ((s | 0) >>> 7)) >>> 0);
   const ACTIONS = [
     [/sätt (på )?ugnen|värm ugnen|sätt på en platta/, 'preheat', 'Värm ugnen'],
     [/grädda|gratinera|tillaga i ugn|in i ugnen|i ugnen i|in formen i|ställ in/, 'bake', 'Grädda'],
@@ -61,13 +62,14 @@ function initProcess(A) {
   // what has already gone into the pot, and what colour the liquid has, before a given step
   function history(id, stepIdx) {
     const steps = A.R[id].parts.flatMap(p => p.steps || []), fl = A.flat(id);
-    const kinds = [], liqs = []; let vessel = null;
+    const kinds = [], liqs = [], prepped = []; let vessel = null;
     for (let i = 0; i < stepIdx; i++) segmentsOf(id, steps[i]).forEach(sg => {
+      if (['chop', 'peel', 'grate', 'press', 'rinse'].includes(sg.act)) { sg.ings.forEach(ii => { const k = fl[ii] && fl[ii].k; if (k && K[k] && (K[k].g || K[k].grp) && !prepped.includes(k)) prepped.push(k); }); return; }
       if (!IN_VESSEL.has(sg.act)) return; if (sg.vessel) vessel = sg.vessel;
       if (sg.act === 'boil' && sg.pastaK && !sg.ings.length) return;
       sg.ings.forEach(ii => { const k = fl[ii] && fl[ii].k; if (!k || !K[k]) return; if ((K[k].g || K[k].grp) && !kinds.includes(k)) kinds.push(k); if (K[k].liq) liqs.push(k); });
     });
-    return { kinds: kinds.slice(-6), liq: mixLiq(liqs), vessel };
+    return { kinds: kinds.slice(-6), liq: mixLiq(liqs), vessel, prepped: prepped.filter(k => !kinds.includes(k)).slice(-5) };
   }
 
   /* ---------------- helpers ---------------- */
@@ -83,6 +85,7 @@ function initProcess(A) {
     const key = 'W' + kind + '|' + Math.round(px); if (SPR.has(key)) return SPR.get(key);
     const cv = itemSprite({ g: w[0], col: w[1] || (K[kind] && K[kind].col) || '#ccc', v: { kind: w[2] }, s: 1, x: 0, y: 0, rot: -.35, seed: 3 }, px); SPR.set(key, cv); return cv;
   }
+  function shredOf(kind, px, seed = 1) { const k = K[kind]; if (!k) return null; const key = 'S' + kind + '|' + Math.round(px) + '|' + seed; if (SPR.has(key)) return SPR.get(key); const cv = itemSprite({ g: 'shred', col: C.light(k.col, .05), v: { w: .08 }, s: 1, x: 0, y: 0, rot: seed * 1.3, seed }, px); SPR.set(key, cv); return cv; }
   const liquidOf = kind => { const k = K[kind]; return k && (k.liq ? k.liq[0] : null); };
   function mixLiq(kinds) { let r = 0, g = 0, b = 0, w = 0; kinds.forEach(k => { const L = K[k] && K[k].liq; if (!L) return; const [cr, cg, cb] = C.rgb(L[0]); r += Math.log(Math.max(cr, 10)) * L[1]; g += Math.log(Math.max(cg, 10)) * L[1]; b += Math.log(Math.max(cb, 10)) * L[1]; w += L[1]; }); return w ? C.hex([Math.exp(r / w), Math.exp(g / w), Math.exp(b / w)]) : null; }
   function blit(c, spr, x, y, sc = 1, rot = 0, a = 1, shadow = true) {
@@ -147,14 +150,20 @@ function initProcess(A) {
   }
 
   /* ---------------- tools ---------------- */
-  function knife(c, S, x, y, rot, style = 0) {
-    c.save(); c.translate(x, y); c.rotate(rot); shade(c, S, .025, .015, .025, .45);
-    const L = style ? .22 : .34;
-    c.beginPath(); c.moveTo(0, 0); c.lineTo(S * L, -S * .004); c.quadraticCurveTo(S * (L + .02), S * .035, S * (L - .04), S * .068); c.lineTo(0, S * .07); c.closePath();
-    const g = c.createLinearGradient(0, 0, 0, S * .07); g.addColorStop(0, '#f6f8f9'); g.addColorStop(.55, '#c7ccd0'); g.addColorStop(1, '#8a9095'); c.fillStyle = g; c.fill();
-    c.shadowColor = 'transparent'; c.fillStyle = 'rgba(255,255,255,.7)'; c.fillRect(S * .02, S * .006, S * (L - .06), S * .006);
-    rr(c, -S * .19, S * .012, S * .2, S * .048, S * .02); c.fillStyle = style ? '#2e3b4a' : '#3a2a1f'; c.fill();
-    c.fillStyle = '#d9cbb2'; [-.15, -.09, -.03].forEach(p => { c.beginPath(); c.arc(S * p, S * .036, S * .006, 0, TAU); c.fill(); });
+  // a knife whose cutting edge touches (x, y); ang points from the heel to the tip; lift 0..1 raises it towards the camera
+  function knife(c, S, x, y, ang, lift = 0, style = 0) {
+    const L = (style ? .2 : .3) * S, W = (style ? .045 : .07) * S, H = (style ? .16 : .19) * S, z = 1 + lift * .07;
+    c.save(); c.translate(x, y); c.rotate(ang); c.scale(z, z);
+    c.shadowColor = `rgba(45,25,8,${.42 - lift * .15})`; c.shadowBlur = S * (.012 + lift * .03); c.shadowOffsetX = S * (.008 + lift * .03); c.shadowOffsetY = S * (.012 + lift * .045);
+    // blade: edge along y = 0 from the heel (x = 0) to the tip (x = L), spine at y = -W
+    c.beginPath(); c.moveTo(-L * .04, 0); c.lineTo(L * .82, 0); c.quadraticCurveTo(L, -W * .15, L * 1.02, -W * .55); c.quadraticCurveTo(L * .8, -W * 1.02, L * .45, -W); c.lineTo(-L * .04, -W); c.closePath();
+    const g = c.createLinearGradient(0, -W, 0, 0); g.addColorStop(0, '#9ea4a8'); g.addColorStop(.35, '#e9ecee'); g.addColorStop(.8, '#c3c8cc'); g.addColorStop(1, '#f7f9fa'); c.fillStyle = g; c.fill();
+    c.shadowColor = 'transparent';
+    c.strokeStyle = 'rgba(255,255,255,.85)'; c.lineWidth = S * .003; c.beginPath(); c.moveTo(0, -S * .002); c.lineTo(L * .8, -S * .002); c.stroke();
+    // bolster and handle continue behind the heel
+    rr(c, -L * .08, -W * .95, L * .07, W * .85, S * .006); c.fillStyle = '#9aa0a4'; c.fill();
+    rr(c, -L * .08 - H, -W * .9, H, W * .72, W * .32); c.fillStyle = style ? '#2e3b4a' : '#3a2a1f'; c.fill();
+    c.fillStyle = '#d9cbb2'; [.25, .55, .8].forEach(f => { c.beginPath(); c.arc(-L * .08 - H * f, -W * .54, S * .0055, 0, TAU); c.fill(); });
     c.restore();
   }
   function woodBoard(c, S, round) {
@@ -215,7 +224,9 @@ function initProcess(A) {
   function kindsOf(id, seg) { const fl = A.flat(id); const ks = []; seg.ings.forEach(i => { const k = fl[i] && fl[i].k; if (k && !ks.includes(k)) ks.push(k); }); return ks; }
   function drawScene(c, S, t, seg, id, st) {
     const kinds = st.kinds, vis0 = kinds.filter(k => K[k] && (K[k].g || K[k].grp)), liq = kinds.map(liquidOf).filter(Boolean);
-    const vis = seg.pastaK && ['boil', 'drain', 'add'].includes(seg.act) && !vis0.includes(seg.pastaK) ? [seg.pastaK, ...vis0] : vis0;
+    let vis = seg.pastaK && ['boil', 'drain', 'add'].includes(seg.act) && !vis0.includes(seg.pastaK) ? [seg.pastaK, ...vis0] : vis0;
+    const veg = /grönsakerna|grönsakerna|allt i|alltsammans/.test((seg.text || '').toLowerCase());
+    if (!vis.length && st.hist.prepped && st.hist.prepped.length && (seg.act === 'fry' || seg.act === 'melt' || (seg.act === 'add' && (!liq.length || veg)))) vis = st.hist.prepped;
     const P = 3.6, p = fr(t / P), seed = st.seed;
     const baseCol = liq.length ? mixLiq(kinds) : (st.hist.liq || st.recipeBase || '#e2cfa3');
     const dough = st.doughy;
@@ -226,22 +237,32 @@ function initProcess(A) {
     switch (seg.act) {
       case 'chop': case 'peel': {
         woodBoard(c, S, seed % 3 === 0);
-        if (!vis.length) { // cutting the dough (or whatever is already on the board)
-          const cuts = Math.floor(p * 8); c.save(); shade(c, S, .02, .005, .012, .3); c.fillStyle = dough; rr(c, S * .22, S * .4, S * .56, S * .2, S * .09); c.fill(); c.restore();
-          c.strokeStyle = C.rgba(C.dark(dough, .35), .7); c.lineWidth = S * .006; for (let i = 1; i <= cuts; i++) { const x = S * (.22 + i * .07); c.beginPath(); c.moveTo(x, S * .4); c.lineTo(x, S * .6); c.stroke(); }
-          const chop = Math.abs(Math.sin(p * 8 * Math.PI)); knife(c, S, S * (.22 + (cuts + 1) * .07) - S * .02, S * .3 - chop * S * .07, 1.35 - chop * .15); break;
+        const N = 9, u = fr(p * N), k = Math.floor(p * N), lift = .5 + .5 * Math.cos(u * TAU);
+        if (!vis.length) { // cutting the dough into pieces
+          const x0 = S * .24, x1 = S * .76, y0 = S * .42, y1 = S * .62, cutAt = i => x0 + (x1 - x0) * (i + 1) / (N + 1);
+          c.save(); shade(c, S, .02, .005, .012, .3); c.fillStyle = dough; rr(c, x0, y0, x1 - x0, y1 - y0, S * .09); c.fill(); c.restore();
+          c.strokeStyle = C.rgba(C.dark(dough, .35), .65); c.lineWidth = S * .005; for (let i = 0; i < k; i++) { c.beginPath(); c.moveTo(cutAt(i), y0 + S * .01); c.lineTo(cutAt(i), y1 - S * .01); c.stroke(); }
+          knife(c, S, cutAt(k) - lift * S * .01, y1 + S * .02 - lift * S * .05, -Math.PI / 2, lift); break;
         }
-        const kk = main, whole = wholeOf(kk, S * .34);
-        if (seg.act === 'peel' && p < .5) {
-          const rot = t * 1.3; blit(c, whole, S * .52, S * .5, 1, rot);
-          c.strokeStyle = C.light((K[kk] || { col: '#c98d4a' }).col, .1); c.lineWidth = S * .016; c.lineCap = 'round'; c.beginPath();
-          for (let i = 0; i < 40; i++) { const a = i / 40 * TAU * 2.2 + rot, rad = S * (.12 + i * .004); c.lineTo(S * .52 + Math.cos(a) * rad, S * .5 + Math.sin(a) * rad + i * S * .006); } c.stroke();
-          knife(c, S, S * .6, S * .38, -.9 + Math.sin(t * 4) * .1, 1); break;
+        const kk = main, whole = wholeOf(kk, S * .36), ix = S * .6, iy = S * .5;
+        const shape = WHOLE[kk] ? WHOLE[kk][0] : 'x', hw = S * (/wLong|wCarrot|wOnion|wGarlic/.test(shape) ? .17 : .14), hh = S * (/wLong|wCarrot/.test(shape) ? .06 : .13);
+        if (seg.act === 'peel' && p < .55) { // a paring knife takes the skin off in one curling ribbon
+          const q = p / .55, rot = t * 1.1, px = ix + hw * .92, py = iy;
+          blit(c, whole, ix, iy, 1, rot * .15);
+          const col = C.light((K[kk] || { col: '#c98d4a' }).col, .05); c.lineCap = 'round'; c.lineJoin = 'round';
+          const pts = []; const n = Math.floor(10 + q * 50); for (let i = 0; i < n; i++) { const f = i / 60, a = f * TAU * 2.4; pts.push([px + S * .03 + f * S * .06 + Math.cos(a) * S * .035, py + S * .02 + f * S * .3 + Math.sin(a) * S * .02]); }
+          ['rgba(60,35,15,.25)', col].forEach((st_, j) => { c.strokeStyle = st_; c.lineWidth = S * (j ? .014 : .018); c.beginPath(); pts.forEach(([x, y], i) => i ? c.lineTo(x + (j ? 0 : S * .006), y + (j ? 0 : S * .008)) : c.moveTo(x, y)); c.stroke(); });
+          knife(c, S, px + Math.sin(t * 6) * S * .004, py + S * .01, -Math.PI / 2 - .25, .15, 1); break;
         }
-        const cuts = Math.floor((seg.act === 'peel' ? (p - .5) * 2 : p) * 10), cx = S * (.68 - cuts * .026);
-        c.save(); c.beginPath(); c.rect(cx, 0, S, S); c.clip(); blit(c, whole, S * .68, S * .5, 1); c.restore();
-        for (let i = 0; i < cuts * 3; i++) { const r = mulberry(i * 13 + seed); blit(c, spriteOf(kk, S * .07, 1 + i % 5), S * (.22 + r() * .24), S * (.35 + r() * .32), 1, r() * TAU); }
-        const chop = Math.abs(Math.sin(p * 10 * Math.PI)); knife(c, S, cx - S * .02, S * .27 - chop * S * .085, .25 - chop * .2);
+        const q = seg.act === 'peel' ? (p - .55) / .45 : p, kc = Math.floor(q * N), uc = fr(q * N), lc = .5 + .5 * Math.cos(uc * TAU);
+        const xL = ix - hw * .92, xR = ix + hw * .92, cutAt = i => xL + (xR - xL) * (i + 1) / (N + 1);
+        const cutX = cutAt(Math.min(kc, N - 1)), done = kc + (uc > .5 ? 1 : 0), edge = done ? cutAt(done - 1) : xL - S;
+        c.save(); c.beginPath(); c.rect(edge, 0, S, S); c.clip(); blit(c, whole, ix, iy, 1); c.restore();
+        if (done) { c.save(); c.globalAlpha = .55; c.fillStyle = '#fbf6e8'; rr(c, edge - S * .003, iy - hh * .8, S * .006, hh * 1.6, S * .003); c.fill(); c.restore(); }
+        // the slices slide off to a little pile on the left
+        for (let i = 0; i < done * 2; i++) { const r = mulberry(i * 13 + seed), cut = Math.floor(i / 2); const tx = S * (.17 + r() * .19), ty = S * (.36 + r() * .28); const age = cut === done - 1 ? clamp((uc - .5) * 2.4, 0, 1) : 1; const sx = cutAt(cut) - S * .02; blit(c, spriteOf(kk, S * .07, 1 + i % 5), sx + (tx - sx) * eio(age), iy + (ty - iy) * eio(age), 1, r() * TAU); }
+        if (seg.act === 'peel') { for (let i = 0; i < 3; i++) { c.save(); c.globalAlpha = .9; c.strokeStyle = C.light((K[kk] || { col: '#c98d4a' }).col, .05); c.lineWidth = S * .012; c.beginPath(); c.arc(S * (.8 + i * .03), S * (.74 + i * .02), S * .03, i, i + 4); c.stroke(); c.restore(); } }
+        knife(c, S, cutX - lc * S * .008, iy + hh + S * .04 - lc * S * .05, -Math.PI / 2, lc);
         break;
       }
       case 'grate': case 'zest': {
@@ -253,7 +274,7 @@ function initProcess(A) {
         else for (let y = 0; y < 12; y++) for (let x = 0; x < 4; x++) { c.beginPath(); c.ellipse(S * (.455 + x * .04), S * (.21 + y * .045), S * .008, S * .012, 0, 0, TAU); c.fill(); }
         const mv = Math.sin(t * 7) * S * (zest ? .12 : .1);
         blit(c, wholeOf(kk, S * (zest ? .2 : .26)), zest ? S * .5 + mv : S * .52, zest ? S * .4 : S * .45 + mv, 1, zest ? t : 1.3);
-        const n = Math.floor(p * 28) + 6; for (let i = 0; i < n; i++) { const r = mulberry(i * 7 + seed); blit(c, spriteOf(zest ? 'lemon' : kk, S * .06, 1 + i % 4), S * (.26 + r() * .5), S * (zest ? .6 + r() * .12 : .74 + r() * .07), zest ? .7 : 1, r() * TAU); }
+        const n = Math.floor(p * 28) + 6; for (let i = 0; i < n; i++) { const r = mulberry(i * 7 + seed); blit(c, zest ? spriteOf('lemon', S * .06, 1 + i % 4) : shredOf(kk, S * .075, 1 + i % 4), S * (.3 + r() * .42), S * (zest ? .6 + r() * .12 : .76 + r() * .05), zest ? .7 : 1, r() * TAU); }
         break;
       }
       case 'press': {
@@ -279,7 +300,7 @@ function initProcess(A) {
         const inPot = (seg.vessel || st.hist.vessel) === 'pot'; const a = vessel(c, S, inPot ? 'pot' : 'skillet', 'white', st.vseed); burner(c, S, a.cx * S, a.cy * S, (inPot ? .36 : .34) * S, t);
         c.save(); c.beginPath(); c.arc(a.cx * S, a.cy * S, a.r * S, 0, TAU); c.clip();
         const oil = c.createRadialGradient(a.cx * S - S * .06, a.cy * S - S * .06, 0, a.cx * S, a.cy * S, a.r * S); oil.addColorStop(0, 'rgba(255,215,120,.25)'); oil.addColorStop(1, 'rgba(255,200,90,.06)'); c.fillStyle = oil; c.fillRect(0, 0, S, S);
-        if (liq.length) { c.globalAlpha = .6; liquid(c, S, a, baseCol, t); c.globalAlpha = 1; }
+        if (liq.length && !kinds.every(k => /broth/.test(k) || !K[k].liq)) { c.globalAlpha = .6; liquid(c, S, a, baseCol, t); c.globalAlpha = 1; }
         contents(c, S, a, prev, t, { hop: 1, size: .065, n: 4, seed: 9, alpha: .9 });
         contents(c, S, a, vis, t, { hop: 1, size: .085, n: 9, spin: .45 });
         c.fillStyle = `rgba(130,65,15,${Math.min(1, p * 1.4) * .18})`; c.fillRect(0, 0, S, S);
@@ -302,12 +323,22 @@ function initProcess(A) {
         if (col || seg.act === 'boil') liquid(c, S, a, col || '#d8c9a6', t, seg.act === 'pour' ? 'rising' : 'still', level);
         if (!pastaBoil) contents(c, S, a, prev, t, { size: .065, n: 4, seed: 9 });
         if (seg.act === 'add') contents(c, S, a, vis, t, { drop: p, size: .078 }); else contents(c, S, a, vis, t, { size: .075 });
+        if (seg.act === 'add' && !vis.length && liq.length) { const lc = mixLiq(kinds) || baseCol; const q = clamp(p * 1.6, 0, 1), cx = a.cx * S, cy = a.cy * S;
+          if (q < 1) { const z = 1 + (1 - q) * 1.8; c.save(); c.globalAlpha = Math.min(1, q * 3); shade(c, S, .02, .01 * z, .02 * z, .35); c.translate(cx + S * .02, cy - S * .02); c.scale(z, z); blobPath(c, S * .045, mulberry(3), 9, .15); c.fillStyle = lc; c.fill(); c.restore(); }
+          else { const w = fr(p * 1.6); c.strokeStyle = `rgba(255,255,255,${.35 * (1 - w)})`; c.lineWidth = S * .004; c.beginPath(); c.arc(cx + S * .02, cy - S * .02, S * (.03 + w * .12), 0, TAU); c.stroke(); c.fillStyle = C.rgba(lc, .9 * (1 - w * .6)); c.beginPath(); c.arc(cx + S * .02, cy - S * .02, S * .045 * (1 + w * .8), 0, TAU); c.fill(); } }
         if (seg.act === 'boil') { bubbles(c, S, a, t); steamPuffs(c, S, t, a.cx * S, a.cy * S - a.r * S * .4, 6, .35); }
         if (seg.act === 'pour') {
-          const lc = liq.length ? baseCol : '#f2eee6'; const tip = Math.min(1, p * 3);
-          c.save(); c.translate(S * .78, S * .2); c.rotate(-.4 - tip * .6); shade(c, S, .03, .01, .02, .4); rr(c, -S * .08, -S * .1, S * .16, S * .2, S * .03); c.fillStyle = 'rgba(235,240,245,.92)'; c.fill(); c.shadowColor = 'transparent'; rr(c, -S * .065, -S * .02, S * .13, S * .1, S * .02); c.fillStyle = lc; c.fill(); c.restore();
-          c.strokeStyle = C.rgba(lc, .9); c.lineWidth = S * .018; c.lineCap = 'round'; c.beginPath(); c.moveTo(S * .7, S * .24); c.quadraticCurveTo(S * .64, S * .34, a.cx * S + S * .05 + Math.sin(t * 9) * S * .004, a.cy * S); c.stroke();
-          c.strokeStyle = `rgba(255,255,255,${.4 * (1 - fr(t * 2))})`; c.lineWidth = S * .004; c.beginPath(); c.arc(a.cx * S + S * .05, a.cy * S, S * .04 * fr(t * 2) + S * .01, 0, TAU); c.stroke();
+          const lc = liq.length ? mixLiq(kinds) : '#f2eee6', tip = eio(Math.min(1, p * 2.5)), ang = -.35 - tip * .75;
+          const jx = S * .76, jy = S * .2, sx = jx + Math.cos(ang + Math.PI) * S * .1, sy = jy + Math.sin(ang + Math.PI) * S * .1;
+          const lx = a.cx * S + S * .04, ly = a.cy * S - S * .02;
+          if (tip > .3) { c.strokeStyle = C.rgba(lc, .95); c.lineWidth = S * .016 * tip; c.lineCap = 'round'; c.beginPath(); c.moveTo(sx, sy); c.quadraticCurveTo(sx - S * .02, (sy + ly) / 2, lx + Math.sin(t * 11) * S * .003, ly); c.stroke();
+            c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = S * .004; c.beginPath(); c.moveTo(sx - S * .004, sy); c.quadraticCurveTo(sx - S * .024, (sy + ly) / 2, lx - S * .004, ly); c.stroke();
+            for (let i = 0; i < 3; i++) { const w = fr(t * 1.6 + i / 3); c.strokeStyle = `rgba(255,255,255,${.4 * (1 - w)})`; c.lineWidth = S * .003; c.beginPath(); c.ellipse(lx, ly, S * (.015 + w * .09), S * (.012 + w * .07), 0, 0, TAU); c.stroke(); } }
+          c.save(); c.translate(jx, jy); c.rotate(ang); shade(c, S, .03, .012, .025, .4);
+          rr(c, -S * .085, -S * .07, S * .17, S * .14, S * .035); c.fillStyle = 'rgba(238,242,246,.95)'; c.fill(); c.shadowColor = 'transparent';
+          c.beginPath(); c.moveTo(-S * .085, -S * .02); c.lineTo(-S * .12, 0); c.lineTo(-S * .085, S * .02); c.fillStyle = 'rgba(238,242,246,.95)'; c.fill();
+          rr(c, -S * .07, -S * .055, S * .14, S * .11, S * .025); c.fillStyle = lc; c.fill(); c.fillStyle = 'rgba(255,255,255,.35)'; c.fillRect(-S * .06, -S * .05, S * .12, S * .012);
+          c.lineWidth = S * .016; c.strokeStyle = 'rgba(225,230,235,.95)'; c.beginPath(); c.arc(S * .1, 0, S * .035, -1.3, 1.3); c.stroke(); c.restore();
         }
         if (seg.act === 'season') {
           [[.34, 'salt'], [.64, 'pepper']].forEach(([x, w], i) => { const sh = Math.sin(t * 10 + i * 2) * S * .02; c.save(); c.translate(S * x + sh, S * .24); c.rotate(.3 + sh / S * 4); shade(c, S, .03, .01, .02, .45);
@@ -390,8 +421,13 @@ function initProcess(A) {
         if (final) { c.save(); c.translate(S / 2, S / 2); c.rotate(t * .1); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 12; i++) { c.rotate(TAU / 12); const g = c.createLinearGradient(0, 0, S * .6, 0); g.addColorStop(0, `rgba(255,225,160,${.12 * q})`); g.addColorStop(1, 'rgba(255,225,160,0)'); c.fillStyle = g; c.beginPath(); c.moveTo(0, 0); c.lineTo(S * .6, -S * .05); c.lineTo(S * .6, S * .05); c.fill(); } c.restore(); }
         if (img) { const s = S * (final ? .86 : .8); c.save(); c.globalAlpha = seg.act === 'sprinkle' ? 1 : q; c.translate(S / 2, S / 2); c.rotate(final ? (1 - q) * -.6 : 0); const z = final ? .7 + q * .3 : .92 + q * .08; c.scale(z, z); c.drawImage(img, -s / 2, -s / 2, s, s); c.restore(); }
         const drops = seg.act === 'sprinkle' ? (vis.length ? vis : prev) : vis;
-        drops.forEach((kk, ki) => { for (let i = 0; i < 6; i++) { const r = mulberry(i * 9 + ki + seed); const dp = clamp(p * 1.8 - ki * .2 - i * .06, 0, 1); if (dp <= 0 || dp >= 1) continue; blit(c, spriteOf(kk, S * .06, 1 + i % 3), S * (.32 + r() * .36), S * (.32 + r() * .36), 1 + (1 - dp) * 2, r() * TAU, dp); } });
-        if (seg.act === 'sprinkle') { const hx = S * (.46 + Math.sin(t * 2) * .12), hy = S * .2; c.save(); c.translate(hx, hy); shade(c, S, .03, .01, .03, .35); c.fillStyle = '#e8c3a2'; c.beginPath(); c.ellipse(0, 0, S * .05, S * .04, .4, 0, TAU); c.fill(); c.beginPath(); c.ellipse(S * .03, S * .035, S * .015, S * .025, .3, 0, TAU); c.fill(); c.restore(); }
+        if (seg.act !== 'sprinkle') drops.forEach((kk, ki) => { for (let i = 0; i < 6; i++) { const r = mulberry(i * 9 + ki + seed); const dp = clamp(p * 1.8 - ki * .2 - i * .06, 0, 1); if (dp <= 0 || dp >= 1) continue; blit(c, spriteOf(kk, S * .06, 1 + i % 3), S * (.32 + r() * .36), S * (.32 + r() * .36), 1 + (1 - dp) * 2, r() * TAU, dp); } });
+        if (seg.act === 'sprinkle') { const hx = S * (.46 + Math.sin(t * 1.4) * .12), hy = S * .22; const pinch = Math.sin(t * 9) * .5 + .5;
+          (drops.length ? drops : ['parsley']).forEach((kk, ki) => { for (let i = 0; i < 7; i++) { const f = fr(t * 1.1 + i / 7 + ki * .13), r = mulberry(i * 5 + ki); blit(c, spriteOf(kk, S * .045, 1 + i % 3), hx + (r() - .5) * S * .04 + f * S * (r() - .5) * .1, hy + S * .04 + f * S * .28, 1.4 - f * .5, r() * TAU + f * 3, f < .85 ? 1 : (1 - f) / .15); } });
+          c.save(); c.translate(hx, hy); shade(c, S, .03, .012, .035, .35); c.fillStyle = '#efc9a6';
+          c.beginPath(); c.ellipse(S * .05, -S * .04, S * .075, S * .05, .5, 0, TAU); c.fill();
+          c.beginPath(); c.ellipse(-S * .012 - pinch * S * .004, S * .01, S * .016, S * .038, .15, 0, TAU); c.fill(); c.beginPath(); c.ellipse(S * .018 + pinch * S * .004, S * .014, S * .014, S * .034, -.25, 0, TAU); c.fill();
+          c.shadowColor = 'transparent'; c.fillStyle = 'rgba(255,235,220,.5)'; c.beginPath(); c.ellipse(-S * .016, 0, S * .006, S * .012, .15, 0, TAU); c.fill(); c.restore(); }
         if (final) sparkles(c, S, t, 18, S / 2, S / 2, S * .42); else if (seg.act === 'serve') sparkles(c, S, t, 6, S / 2, S / 2, S * .36);
       }
     }
@@ -399,7 +435,7 @@ function initProcess(A) {
   }
 
   /* ---------------- player ---------------- */
-  let cur = null; const FINAL = new Map();
+  const FINAL = new Map();
   function finalImg(id, S) { const key = id + '|' + S; if (!FINAL.has(key)) { if (FINAL.size > 6) FINAL.clear(); try { FINAL.set(key, renderScene(A.scene(id), S)); } catch (e) { FINAL.set(key, null); } } return FINAL.get(key); }
   function build(id, text, stepIdx, isLast) { const segs = segmentsOf(id, text); if (isLast) segs.push({ act: 'result', word: 'Klart', ings: [], text: '' }); return segs; }
   function withinOf(st, segs, si) {
@@ -412,32 +448,60 @@ function initProcess(A) {
     const h = history(id, stepIdx);
     return { id, step: stepIdx, recipeBase: base ? base.base.col : null, dishImg: A.THUMB_IMG[id], kinds: [], hist: h, hist0: h, seed: (strHash(id) + stepIdx * 7919) % 100000, rseed: strHash(id) % 100000, vseed: strHash(id + 'v') % 1000, doughy: fl.some(f => /(vego|soja|formbar )färs|^\d+ g färs/.test(f.t)) ? '#8a5a3a' : '#ecd5a8' };
   }
-  function play(cv, capEl, id, text, stepIdx = 0, isLast = false) {
-    stop();
-    const segs = build(id, text, stepIdx, isLast); if (!segs.length) return;
-    const st = stateFor(id, stepIdx);
-    cur = { raf: 0, t0: performance.now(), segs, cv, capEl, id, st, last: -1 };
-    const fl = A.flat(id), P = 3.6;
-    const loop = now => {
-      if (!cur || !cv.isConnected) return;
-      const r = cv.getBoundingClientRect(), D = Math.min(2, window.devicePixelRatio || 1), S = Math.round(r.width * D);
-      if (!S) { cur.raf = requestAnimationFrame(loop); return; }
-      if (cv.width !== S) { cv.width = cv.height = S; SPR.clear(); }
-      const t = (now - cur.t0) / 1000;
-      let si = Math.floor(t / P) % segs.length; const res = segs[segs.length - 1].act === 'result';
-      if (res && t >= P * (segs.length - 1)) si = segs.length - 1;
-      const seg = segs[si], ts = res && si === segs.length - 1 ? t - P * (segs.length - 1) : t % P;
-      if (si !== cur.last) { cur.last = si; st.kinds = kindsOf(id, seg); withinOf(st, segs, si); if (['result', 'serve', 'bake', 'sprinkle'].includes(seg.act)) st.finalImg = finalImg(id, S); const names = seg.ings.map(i => fl[i] && A.shortName(fl[i].t)).filter(Boolean).slice(0, 4); capEl.innerHTML = seg.act === 'result' ? `<b>Klart</b> · ${A.esc(A.R[id].title)}` : `<b>${seg.word}</b>${names.length ? ' · ' + A.esc(names.join(', ')) : ''}${segs.length > 1 ? `<span>${si + 1}/${segs.length}</span>` : ''}`; }
-      const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, S, S);
-      try { drawScene(c, S, A.REDUCED ? 1.8 : ts, seg, id, st); } catch (e) { console.warn('process', e); }
-      if (!A.REDUCED) cur.raf = requestAnimationFrame(loop);
-    };
-    cur.raf = requestAnimationFrame(loop);
+  // every moment of a recipe (or of one step) as a flat list the player walks through
+  function momentsOf(id, onlyStep = null) {
+    const steps = A.R[id].parts.flatMap(p => p.steps || []), out = [];
+    steps.forEach((text, si) => { if (onlyStep != null && si !== onlyStep) return; const last = si === steps.length - 1, segs = build(id, text, si, last); segs.forEach((seg, k) => out.push({ step: si, k, seg, segs, text, last })); });
+    return out;
   }
-  function stop() { if (cur) cancelAnimationFrame(cur.raf); cur = null; }
+  const P_SEC = 3.6;
+  // a player: plays moments in order, can pause, step back and forward; the finished dish is held at the end
+  function player(cv, id, moments, opts = {}) {
+    const pl = { i: 0, t0: performance.now(), paused: false, pausedAt: 0, raf: 0, dead: false, loop: !!opts.loop };
+    const states = new Map(), fl = A.flat(id);
+    const stOf = m => { if (!states.has(m.step)) states.set(m.step, stateFor(id, m.step)); return states.get(m.step); };
+    let shown = -1;
+    const frame = now => {
+      if (pl.dead || !cv.isConnected) return;
+      const r = cv.getBoundingClientRect(), D = Math.min(2, window.devicePixelRatio || 1), S = Math.round(r.width * D);
+      if (!S) { pl.raf = requestAnimationFrame(frame); return; }
+      if (cv.width !== S) { cv.width = cv.height = S; SPR.clear(); shown = -1; }
+      let ts = ((pl.paused ? pl.pausedAt : now) - pl.t0) / 1000;
+      const m = moments[pl.i], hold = m.seg.act === 'result';
+      if (!pl.paused && !hold && ts >= P_SEC) { if (pl.i < moments.length - 1) { go(pl.i + 1); ts = 0; } else if (pl.loop) { go(0); ts = 0; } }
+      if (!pl.paused && hold && ts >= 7 && pl.loop && moments.length > 1) { go(0); ts = 0; }
+      const mm = moments[pl.i], st = stOf(mm);
+      if (shown !== pl.i) { shown = pl.i; st.kinds = kindsOf(id, mm.seg); withinOf(st, mm.segs, mm.k); if (['result', 'serve', 'bake', 'sprinkle'].includes(mm.seg.act)) st.finalImg = finalImg(id, S); opts.onMoment && opts.onMoment(pl.i, mm, fl); }
+      const c = cv.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, S, S);
+      try { drawScene(c, S, A.REDUCED ? 1.8 : Math.min(ts, mm.seg.act === 'result' ? 999 : P_SEC - .001), mm.seg, id, st); } catch (e) { console.warn('process', e); }
+      opts.onTick && opts.onTick(Math.min(1, ts / P_SEC), pl.paused);
+      pl.raf = requestAnimationFrame(frame);
+    };
+    function go(i) { pl.i = (i + moments.length) % moments.length; pl.t0 = performance.now(); if (pl.paused) pl.pausedAt = pl.t0; }
+    pl.go = i => { go(i); };
+    pl.next = () => go(pl.i + 1);
+    pl.prev = () => { const el = ((pl.paused ? pl.pausedAt : performance.now()) - pl.t0) / 1000; go(el > 1.2 ? pl.i : pl.i - 1); };
+    pl.toggle = () => { const now = performance.now(); if (pl.paused) { pl.t0 += now - pl.pausedAt; pl.paused = false; } else { pl.paused = true; pl.pausedAt = now; } opts.onTick && opts.onTick(0, pl.paused); return pl.paused; };
+    pl.destroy = () => { pl.dead = true; cancelAnimationFrame(pl.raf); };
+    pl.moments = moments;
+    pl.raf = requestAnimationFrame(frame);
+    return pl;
+  }
+  let cur = null;
+  function play(cv, capEl, id, text, stepIdx = 0, isLast = false, ui = {}) {
+    stop();
+    const moments = momentsOf(id, stepIdx);
+    cur = player(cv, id, moments, { loop: true, onMoment: (i, m, fl) => {
+      const names = m.seg.ings.map(ii => fl[ii] && A.shortName(fl[ii].t)).filter(Boolean).slice(0, 4);
+      capEl.innerHTML = m.seg.act === 'result' ? `<b>Klart</b> · ${A.esc(A.R[id].title)}` : `<b>${m.seg.word}</b>${names.length ? ' · ' + A.esc(names.join(', ')) : ''}`;
+      ui.onMoment && ui.onMoment(i, moments.length, m);
+    }, onTick: ui.onTick });
+    return cur;
+  }
+  function stop() { if (cur) cur.destroy(); cur = null; }
   function renderFrame(cv, id, text, si, t, stepIdx = 0, isLast = false) {
     const segs = build(id, text, stepIdx, isLast), seg = segs[si % segs.length], st = stateFor(id, stepIdx); st.kinds = kindsOf(id, seg); withinOf(st, segs, si % segs.length); st.finalImg = finalImg(id, cv.width);
     const c = cv.getContext('2d'); c.clearRect(0, 0, cv.width, cv.height); drawScene(c, cv.width, t, seg, id, st); return segs.map(s => s.act + ':' + s.word);
   }
-  return { play, stop, segments: segmentsOf, renderFrame };
+  return { play, stop, player, momentsOf, segments: segmentsOf, renderFrame };
 }

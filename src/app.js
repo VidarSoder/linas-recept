@@ -275,14 +275,14 @@ document.addEventListener('keydown', e => {
   const inField = /INPUT|TEXTAREA/.test(document.activeElement?.tagName);
   if (e.key === '/' && !inField && !openStack.length) { e.preventDefault(); qEl.focus(); }
   const top = openStack[openStack.length - 1];
-  if (top === $('#recipe') && !inField) { if (e.key === 'ArrowRight') stepRecipe(1); if (e.key === 'ArrowLeft') stepRecipe(-1); }
+  if (top === $('#recipe') && !inField) { if (e.key === 'ArrowRight') show.on ? showGo(1) : stepRecipe(1); if (e.key === 'ArrowLeft') show.on ? showGo(-1) : stepRecipe(-1); }
   if (top === $('#cook') && !inField) { if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); cookGo(1); } if (e.key === 'ArrowLeft') cookGo(-1); }
 });
 function closeTop() {
   const top = openStack[openStack.length - 1]; if (!top) return;
-  if (top.id === 'recipe') closeRecipe(); else if (top.id === 'kitchen') KIT.back(); else if (top.id === 'cook') closeCook(); else if (top.id === 'pantry') hideOverlay(top); else if (top.id === 'spin') closeSpin(); else hideOverlay(top);
+  if (top.id === 'recipe') closeRecipe(); else if (top.id === 'gallery') closeGallery(); else if (top.id === 'kitchen') KIT.back(); else if (top.id === 'cook') closeCook(); else if (top.id === 'pantry') hideOverlay(top); else if (top.id === 'spin') closeSpin(); else hideOverlay(top);
 }
-$$('[data-close]').forEach(b => b.addEventListener('click', () => { const o = b.closest('.overlay, .sheet'); if (o.id === 'kitchen') { KIT.close(); return; } if (o === openStack[openStack.length - 1]) closeTop(); else hideOverlay(o); }));
+$$('[data-close]').forEach(b => b.addEventListener('click', () => { const o = b.closest('.overlay, .sheet'); if (o.id === 'kitchen') { KIT.close(); return; } if (o.id === 'gallery') { closeGallery(); return; } if (o === openStack[openStack.length - 1]) closeTop(); else hideOverlay(o); }));
 $$('[data-act]').forEach(b => b.addEventListener('click', () => { const a = b.dataset.act; if (a === 'spin') openSpin(); if (a === 'pantry') openPantry(); if (a === 'show') startShow(); if (a === 'kitchen') KIT && KIT.open(); }));
 
 /* ================= recipe view: the plate ================= */
@@ -330,7 +330,7 @@ function playPlate(id, opts = {}) {
   if (instant) {
     drawUnder(1e9); renderOver(sc, S, ctx.over); renderBase(sc, S, ctx.base); items.forEach(o => { drawItem(ctx.settled, o.it, S); o.done = true; }); onPlateDone(); return;
   }
-  const pourLine = ing => { if (ing < 0) return; const li = $(`#rBody li[data-i="${ing}"]`); if (li) { li.classList.add('pour'); setTimeout(() => li.classList.remove('pour'), 650); } if (rv.show) $('#sLine').textContent = scene(id).flat[ing]?.t || ''; };
+  const pourLine = ing => { if (ing < 0) return; const li = $(`#rBody li[data-i="${ing}"]`); if (li) { li.classList.add('pour'); setTimeout(() => li.classList.remove('pour'), 650); } if (rv.show) { const sl = $(`#sIngs li[data-i="${ing}"]`); sl && sl.classList.add('in'); } };
   // sprites prepared lazily just before each item falls
   const frame = now => {
     const t = now - t0;
@@ -372,7 +372,7 @@ function steamLoop() {
   };
   rv.sraf = requestAnimationFrame(loop);
 }
-function onPlateDone() { rv.ready = true; if (rv.hover !== -9) spotlight(rv.hover); steamLoop(); }
+function onPlateDone() { rv.ready = true; if (rv.hover !== -9) spotlight(rv.hover); steamLoop(); if (rv.show) { $$('#sIngs li').forEach(li => li.classList.add('in')); $('#sQuip').classList.add('on'); } }
 // hover: item under the pointer → ingredient
 function unitPt(e) { const r = plateEl.getBoundingClientRect(); return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height, r]; }
 function hitTest(u, v) {
@@ -515,7 +515,7 @@ function timersIn(text) {
   return out;
 }
 function openCook(id) {
-  const r = R[id]; ck.id = id; ck.i = 0; ck.checked = new Set();
+  const r = R[id]; if (!r) return; ck.id = id; ck.i = 0; ck.checked = new Set();
   const list = [{ type: 'prep' }];
   r.parts.forEach(p => (p.steps || []).forEach(s => list.push({ type: 'step', part: r.parts.length > 1 ? p.label : null, text: s })));
   list.push({ type: 'done' }); ck.list = list;
@@ -543,7 +543,7 @@ function renderCook() {
   } else if (s.type === 'step') {
     const n = ck.list.slice(0, ck.i + 1).filter(x => x.type === 'step').length;
     const { hits, html: th } = stepIngredients(ck.id, s.text);
-    html += `<div class="k-film"><canvas id="kFilm"></canvas><p class="k-film-cap" id="kFilmCap"></p></div><div class="k-text"><p class="k-count">Steg ${n} av ${steps}${s.part ? ' · ' + esc(s.part) : ''}</p><p class="k-step">${th}</p>`;
+    html += `<div class="k-film"><canvas id="kFilm"></canvas><p class="k-film-cap" id="kFilmCap"></p><div class="film-ctrl" id="kCtrl"></div></div><div class="k-text"><p class="k-count">Steg ${n} av ${steps}${s.part ? ' · ' + esc(s.part) : ''}</p><p class="k-step">${th}</p>`;
     if (hits.length) html += `<div class="k-chips">${hits.map(i => { const fi = fl[i], ic = iconFor(fi.k), { q, t } = ingLine(fi, rv.id === ck.id ? rv.k : 1); return `<span class="k-chip">${ic ? `<img src="${ic}" alt="">` : ''}${q ? `<span class="q">${q}</span>` : ''}${t}</span>`; }).join('')}</div>`;
     const tm = timersIn(s.text);
     if (tm.length) html += `<div class="k-tbtns">${tm.map((t, i) => `<button class="btn" type="button" data-t="${i}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></svg>Starta timer · ${esc(t.label)}</button>`).join('')}</div>`;
@@ -557,7 +557,7 @@ function renderCook() {
     SND.ambience(null);
   }
   const main = $('#kMain'); main.innerHTML = html; main.scrollTop = 0; main.classList.toggle('with-film', s.type === 'step');
-  if (s.type === 'step' && PROC) { const si = ck.list.slice(0, ck.i + 1).filter(x => x.type === 'step').length - 1; PROC.play($('#kFilm'), $('#kFilmCap'), ck.id, s.text, si, si === ck.list.filter(x => x.type === 'step').length - 1); } else PROC && PROC.stop();
+  if (s.type === 'step' && PROC) { const si = ck.list.slice(0, ck.i + 1).filter(x => x.type === 'step').length - 1; const ctl = filmControls($('#kCtrl')); const pl = PROC.play($('#kFilm'), $('#kFilmCap'), ck.id, s.text, si, si === ck.list.filter(x => x.type === 'step').length - 1, ctl.ui); ctl.bind(pl); } else PROC && PROC.stop();
   if (s.type === 'done') { const fc = $('#kFinal'); if (fc) { const D = Math.min(2, devicePixelRatio || 1), S = Math.round(Math.min(620, fc.getBoundingClientRect().width || 420) * D); renderScene(scene(ck.id), S, fc); } }
   $('#cook .k-bg').hidden = s.type === 'step';
   if (s.type === 'done') playMascot($('#kMascot'), ck.id, API);
@@ -567,6 +567,53 @@ function renderCook() {
 }
 // swipe in cook mode
 (() => { let x0 = null; const m = $('#cook'); m.addEventListener('touchstart', e => { x0 = e.touches[0].clientX; }, { passive: true }); m.addEventListener('touchend', e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 60) cookGo(dx < 0 ? 1 : -1); x0 = null; }); })();
+
+/* ================= film controls & the step-film gallery ================= */
+const ICO = {
+  prev: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg>',
+  next: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 5v14l12-7z"/></svg>'
+};
+function filmControls(host, extra = '') {
+  host.innerHTML = `<button type="button" class="fc-btn" data-f="prev" aria-label="Föregående moment">${ICO.prev}</button><button type="button" class="fc-btn fc-play" data-f="toggle" aria-label="Pausa">${ICO.pause}</button><button type="button" class="fc-btn" data-f="next" aria-label="Nästa moment">${ICO.next}</button><div class="fc-dots"></div>${extra}`;
+  let pl = null; const dots = $('.fc-dots', host), playBtn = $('.fc-play', host);
+  host.addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b || !pl) return; if (b.dataset.f === 'prev') pl.prev(); if (b.dataset.f === 'next') pl.next(); if (b.dataset.f === 'toggle') pl.toggle(); if (b.dataset.i) pl.go(+b.dataset.i); });
+  const ui = {
+    onMoment(i, n) { if (dots.children.length !== n) dots.innerHTML = Array.from({ length: n }, (_, k) => `<button type="button" class="fc-dot" data-f="dot" data-i="${k}" aria-label="Moment ${k + 1}"><b></b></button>`).join(''); [...dots.children].forEach((d, k) => { d.classList.toggle('on', k === i); d.classList.toggle('past', k < i); }); },
+    onTick(f, paused) { const d = dots.querySelector('.on b'); if (d) d.style.transform = `scaleX(${f})`; playBtn.innerHTML = paused ? ICO.play : ICO.pause; playBtn.setAttribute('aria-label', paused ? 'Spela' : 'Pausa'); }
+  };
+  return { ui, bind(p) { pl = p; } };
+}
+const gal = { pl: null, id: null };
+function openGallery(id, fromStep = 0) {
+  if (!R[id]) return; const ov = $('#gallery'); gal.id = id; ov.style.setProperty('--c', META[id].ch.color);
+  $('#gTitle').textContent = R[id].title;
+  showOverlay(ov);
+  const moments = PROC.momentsOf(id), steps = R[id].parts.flatMap(p => p.steps || []);
+  const strip = $('#gStrip');
+  strip.innerHTML = moments.map((m, i) => `<button type="button" class="g-th" data-i="${i}" title="Steg ${m.step + 1}: ${esc(m.seg.word)}"><canvas width="120" height="120"></canvas><span>${m.seg.act === 'result' ? 'Klart' : esc(m.seg.word)}</span><i>${m.step + 1}</i></button>`).join('');
+  // thumbnails render a few at a time so the gallery opens at once
+  const ths = $$('.g-th canvas', strip); let ti = 0; const thumbs = () => { const end = Math.min(ths.length, ti + 3); for (; ti < end; ti++) { const m = moments[ti]; try { PROC.renderFrame(ths[ti], id, m.text, m.k, 2, m.step, m.last); } catch (e) { } } if (ti < ths.length && !ov.hidden) setTimeout(thumbs, 16); }; setTimeout(thumbs, 60);
+  const ctl = filmControls($('#gCtrl'));
+  const start = Math.max(0, moments.findIndex(m => m.step === fromStep));
+  gal.pl && gal.pl.destroy();
+  gal.pl = PROC.player($('#gFilm'), id, moments, { loop: false, onTick: ctl.ui.onTick, onMoment: (i, m, fl) => {
+    ctl.ui.onMoment(i, moments.length);
+    $$('.g-th', strip).forEach((b, k) => b.classList.toggle('on', k === i)); const on = $('.g-th.on', strip); on && on.scrollIntoView({ block: 'nearest', inline: 'center', behavior: REDUCED ? 'auto' : 'smooth' });
+    const names = m.seg.ings.map(ii => fl[ii] && shortName(fl[ii].t)).filter(Boolean).slice(0, 5);
+    $('#gCount').textContent = m.seg.act === 'result' ? 'Klart att servera' : `Steg ${m.step + 1} av ${steps.length} · moment ${m.k + 1} av ${m.segs.length - (m.last ? 1 : 0)}`;
+    $('#gWord').textContent = m.seg.act === 'result' ? R[id].title : m.seg.word;
+    $('#gIngs').textContent = names.join(' · ');
+    const txt = m.text, sent = m.seg.text || '';
+    $('#gStep').innerHTML = m.seg.act === 'result' ? esc('Smaklig måltid.') : (sent && txt.includes(sent) ? esc(txt.slice(0, txt.indexOf(sent))) + '<mark>' + esc(sent) + '</mark>' + esc(txt.slice(txt.indexOf(sent) + sent.length)) : esc(txt));
+  } });
+  gal.pl.go(start);
+  strip.onclick = e => { const b = e.target.closest('.g-th'); if (b) gal.pl.go(+b.dataset.i); };
+}
+function closeGallery() { gal.pl && gal.pl.destroy(); gal.pl = null; hideOverlay($('#gallery')); }
+document.addEventListener('keydown', e => { if ($('#gallery').hidden || openStack[openStack.length - 1] !== $('#gallery') || !gal.pl) return; if (e.key === 'ArrowRight') gal.pl.next(); if (e.key === 'ArrowLeft') gal.pl.prev(); if (e.key === ' ') { e.preventDefault(); gal.pl.toggle(); } });
+$('#rFilms').addEventListener('click', () => openGallery(rv.id));
 
 /* timers */
 const timers = []; const tBox = $('#timers');
@@ -592,28 +639,44 @@ function tickTimers(once) {
 }
 
 /* ================= show mode ("visningsläge") ================= */
-const show = { on: false, i: 0, t: 0, timer: 0, start: 0 };
+// a slideshow through the whole book: the plate is laid on the left, the page tells what is going into it
+const show = { on: false, i: 0, paused: false, elapsed: 0, last: 0, raf: 0, DUR: 9500 };
 function startShow(from) {
-  const ov = $('#recipe'); rv.show = true; show.on = true; ov.classList.add('show');
-  show.i = from != null ? ORDER.indexOf(from) : Math.floor(Math.random() * ORDER.length);
+  const ov = $('#recipe'); rv.show = true; show.on = true; show.paused = false; ov.classList.add('show');
+  show.i = from != null && ORDER.includes(from) ? ORDER.indexOf(from) : 0;
   try { ov.requestFullscreen && ov.requestFullscreen().catch(() => { }); } catch (e) { }
-  showNext(0);
+  showGo(0, true);
+  cancelAnimationFrame(show.raf); show.last = performance.now(); show.raf = requestAnimationFrame(showTick);
 }
-function showNext(d) {
-  if (!show.on) return; show.i = (show.i + d + ORDER.length) % ORDER.length; const id = ORDER[show.i];
-  $('#sTitle').textContent = R[id].title; $('#sLine').textContent = `Flik ${META[id].ch.n} · ${META[id].ch.name}`;
-  $('#recipe').style.setProperty('--c', META[id].ch.color);
-  if ($('#recipe').hidden) openRecipe(id); else gotoRecipe(id, 1);
-  const bar = $('#sBar'); bar.style.transition = 'none'; bar.style.width = '0'; void bar.offsetWidth; bar.style.transition = 'width 8.4s linear'; bar.style.width = '100%';
-  clearTimeout(show.timer); show.timer = setTimeout(() => showNext(1), 8800);
+function showTick(now) {
+  if (!show.on) return; const dt = Math.max(0, Math.min(120, now - show.last)); show.last = now;
+  if (!show.paused) show.elapsed += dt;
+  $('#sBar').style.transform = `scaleX(${Math.min(1, show.elapsed / show.DUR)})`;
+  if (show.elapsed >= show.DUR) showGo(1);
+  show.raf = requestAnimationFrame(showTick);
 }
+function showGo(d, first) {
+  if (!show.on) return; show.i = (show.i + d + ORDER.length) % ORDER.length; show.elapsed = 0; const id = ORDER[show.i], m = META[id], r = R[id];
+  $('#recipe').style.setProperty('--c', m.ch.color);
+  $('#sChap').textContent = `Flik ${m.ch.n} · ${m.ch.name} · ${m.sec}`;
+  $('#sTitle').textContent = r.title;
+  const metas = r.parts.flatMap(p => p.meta || []); $('#sMeta').textContent = [`sida ${m.ref}`, ...metas].join(' · ');
+  const fl = flat(id); $('#sIngs').innerHTML = fl.map((f, i) => /:$/.test(f.t) ? '' : `<li data-i="${i}">${esc(shortName(f.t) || f.t)}</li>`).join('');
+  $('#sQuip').textContent = (typeof QUIPS !== 'undefined' && QUIPS[id]) || ''; $('#sQuip').classList.remove('on');
+  $('#sCount').textContent = `${show.i + 1} / ${ORDER.length}`;
+  if ($('#recipe').hidden || first) openRecipe(id); else gotoRecipe(id, d < 0 ? -1 : 1);
+}
+function showPause(p = !show.paused) { show.paused = p; $('#sPlay').innerHTML = p ? ICO.play : ICO.pause; $('#sPlay').setAttribute('aria-label', p ? 'Spela' : 'Pausa'); $('#recipe').classList.toggle('paused', p); }
 function stopShow() {
-  if (!show.on) return; show.on = false; rv.show = false; clearTimeout(show.timer); $('#recipe').classList.remove('show');
+  if (!show.on) return; show.on = false; rv.show = false; cancelAnimationFrame(show.raf); showPause(false); $('#recipe').classList.remove('show');
   try { document.fullscreenElement && document.exitFullscreen(); } catch (e) { }
 }
-$('#sExit').addEventListener('click', () => { stopShow(); renderPaper(rv.id); });
-document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && show.on) { stopShow(); } });
-$('#rStage').addEventListener('click', e => { if (show.on && !e.target.closest('button')) showNext(1); });
+$('#sExit').addEventListener('click', () => closeRecipe());
+$('#sPrev').addEventListener('click', () => showGo(-1));
+$('#sNext').addEventListener('click', () => showGo(1));
+$('#sPlay').addEventListener('click', () => showPause());
+document.addEventListener('keydown', e => { if (!show.on || openStack[openStack.length - 1] !== $('#recipe')) return; if (e.key === ' ') { e.preventDefault(); showPause(); } });
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && show.on) { closeRecipe(); } });
 
 /* ================= pantry ================= */
 const BASIC = new Set(['none', 'water', 'broth', 'darkbroth', 'pepper', 'driedherb', 'spice', 'bay', 'clove', 'paprikap', 'turmeric', 'cinnamon', 'soy', 'chiliflakes', 'curry', 'bread', 'pearl', 'sesame']);

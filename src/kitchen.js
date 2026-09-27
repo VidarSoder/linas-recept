@@ -179,6 +179,8 @@ function initKitchen(A) {
   /* ---------------- camera ---------------- */
   const cam = { x: W / 2, y: H / 2, s: .4 }; let tween = null, vw = 0, vh = 0;
   function fitScale() { return Math.min(vw / (W + 120), vh / (H + 160)); }
+  // the resting view: whole room on wide screens; on narrow/portrait screens fill the height so dishes stay tappable and you pan sideways
+  function homeScale() { const f = fitScale(); return vw < 900 && vh > vw * .9 ? Math.max(f, Math.min((vh - 150) / (H + 60), f * 3)) : f; }
   function resize() { const r = cv.getBoundingClientRect(); vw = r.width; vh = r.height; cv.width = Math.round(vw * DPR); cv.height = Math.round(vh * DPR); }
   const toWorld = (sx, sy) => [(sx - vw / 2) / cam.s + cam.x, (sy - vh / 2) / cam.s + cam.y];
   function clampCam() { const f = fitScale(); cam.s = clamp(cam.s, f * .85, 6); const mx = Math.max(0, (W * cam.s - vw) / 2 / cam.s) + 200, my = Math.max(0, (H * cam.s - vh) / 2 / cam.s) + 200; cam.x = clamp(cam.x, W / 2 - mx, W / 2 + mx); cam.y = clamp(cam.y, H / 2 - my, H / 2 + my); }
@@ -629,7 +631,7 @@ function initKitchen(A) {
     renderPanel(d); panel.hidden = false;
     ov.classList.add('focused');
   }
-  function unfocus() { focus = null; panel.hidden = true; ov.classList.remove('focused'); flyTo(W / 2, H / 2 + 30, fitScale()); }
+  function unfocus() { focus = null; panel.hidden = true; ov.classList.remove('focused'); flyTo(cam.x, H / 2 + 30, homeScale()); }
   function renderPanel(d) {
     const r = A.R[d.id], m = A.META[d.id], fl = A.flat(d.id);
     panel.style.setProperty('--c', m.ch.color);
@@ -657,7 +659,7 @@ function initKitchen(A) {
   // zone chips & zoom buttons
   const chips = document.getElementById('kZones');
   chips.innerHTML = `<button class="btn" type="button" data-z="all">Hela köket</button>` + ZONES.map((z, i) => `<button class="btn" type="button" data-z="${i}"><i style="background:${chap(z.n).color}"></i>${A.esc(z.name)}</button>`).join('');
-  chips.addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; if (focus) { focus = null; panel.hidden = true; ov.classList.remove('focused'); } if (b.dataset.z === 'all') flyTo(W / 2, H / 2 + 30, fitScale()); else { const z = ZONES[+b.dataset.z]; flyTo(z.cam[0], z.cam[1], Math.max(fitScale(), fitScale() * z.cam[2] * 1.9)); } });
+  chips.addEventListener('click', e => { const b = e.target.closest('[data-z]'); if (!b) return; if (focus) { focus = null; panel.hidden = true; ov.classList.remove('focused'); } if (b.dataset.z === 'all') flyTo(W / 2, H / 2 + 30, fitScale()); else { const z = ZONES[+b.dataset.z]; flyTo(z.cam[0], z.cam[1], Math.max(homeScale() * 1.3, fitScale() * z.cam[2] * 1.9)); } b.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' }); });
   document.getElementById('kZoomIn').addEventListener('click', () => flyTo(cam.x, cam.y, Math.min(6, cam.s * 1.5), 400));
   document.getElementById('kZoomOut').addEventListener('click', () => flyTo(cam.x, cam.y, Math.max(fitScale() * .85, cam.s / 1.5), 400));
 
@@ -666,8 +668,8 @@ function initKitchen(A) {
     A.showOverlay(ov); resize();
     if (!STATIC) buildStatic();
     A.ORDER.forEach(x => A.wantThumb(x));
-    cam.s = fitScale() * 1.35; cam.x = W / 2; cam.y = H / 2 + 30;
-    flyTo(W / 2, H / 2 + 30, fitScale(), 1600);
+    cam.s = homeScale() * 1.35; cam.x = W / 2; cam.y = H / 2 + 30;
+    flyTo(W / 2, H / 2 + 30, homeScale(), 1600);
     running = true; last = 0; cancelAnimationFrame(raf); raf = requestAnimationFrame(frame);
     if (id && byId[id]) setTimeout(() => focusDish(byId[id]), 700);
   }
